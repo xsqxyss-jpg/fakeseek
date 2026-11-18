@@ -15,6 +15,7 @@ import type {
   UserMessage,
 } from './types.js'
 import { useSettings } from '../settings.js'
+import { estimateTokens } from '../api/modelLimits.js'
 
 /**
  * 文件按 Files API 的 file_id（附件的 serverId）引用：图片用 image 块，其余用 document 块。
@@ -331,7 +332,12 @@ export const toRequestMessages = (
   locations?: FileBlockLocation,
   skip?: ReadonlySet<string>,
   /** 上下文超长后的收缩倍数：1 = 不收缩，2 = 减半，4 = 四分之一……由调用方逐次翻倍 */
-  trimFactor = 1
+  trimFactor = 1,
+  /**
+   * 历史可用的 token 预算（调用方已扣掉 system、本轮提问与输出预留）。
+   * 有值时先按估算从最旧开始丢轮次，避免明知会超长还先发一次去撞 400。
+   */
+  historyTokenBudget?: number
 ): MessageParam[] => {
   const messages: MessageParam[] = []
   let previousReminder: string | undefined
@@ -374,7 +380,33 @@ export const toRequestMessages = (
   const rounds = getContextRounds(history)
   const base = keepRounds > 0 ? Math.min(keepRounds, rounds.length) : rounds.length
   const limit = Math.max(1, Math.floor(base / trimFactor))
-  const kept = limit >= rounds.length ? rounds : rounds.slice(-limit)
+  let kept = limit >= rounds.length ? rounds : rounds.slice(-limit)
+  // 按预算再收一次：从最新一轮往回累加，超预算就停（至少留 1 轮）。
+  // 只在调用方给了预算时生效，估算是粗算，命中真实 400 时仍有 trimFactor 兜底。
+  if (historyTokenBudget !== undefined) {
+    let used = 0
+    let from = kept.length
+    while (from > 0) {
+      const [user, reply] = kept[from - 1]
+      const cost =
+        estimateTokens(user.content) +
+        reply.blocks.reduce((sum, block) => {
+          if (block.type === 'text') {
+            return sum + estimateTokens(block.text)
+          }
+          if (block.type === 'thinking') {
+            return sum + estimateTokens(block.thinking)
+          }
+          return sum
+        }, 0)
+      if (from < kept.length && used + cost > historyTokenBudget) {
+        break
+      }
+      used += cost
+      from -= 1
+    }
+    kept = kept.slice(from)
+  }
   for (const [user, reply] of kept) {
     // 历史提问没有文字、附件也都没有 serverId 时，提问为空，连同回答一起省略。
     if (!user.content && toFileBlocks(user.files, skip).length === 0) {

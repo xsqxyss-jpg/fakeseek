@@ -1,4 +1,6 @@
 import { API_ORIGIN, request } from './client.js'
+import { absorbModelsPayload } from './modelLimits.js'
+
 
 /**
  * 模型清单：GET /models（不产生费用，与 Key 校验同一端点）。
@@ -59,8 +61,7 @@ export const cachedModels = (): ModelOption[] => {
   return cache && Date.now() - cache.at < CACHE_TTL ? cache.models : []
 }
 
-/** 拉取模型清单；force 时忽略缓存。失败抛错由调用方回落。 */
-export const fetchModels = async (apiKey: string, force = false): Promise<ModelOption[]> => {
+/** 拉取模型清单；force 时忽略缓存。失败抛错由调用方回落。 */export const fetchModels = async (apiKey: string, force = false): Promise<ModelOption[]> => {
   if (!force) {
     const cached = cachedModels()
     if (cached.length > 0) {
@@ -72,6 +73,8 @@ export const fetchModels = async (apiKey: string, force = false): Promise<ModelO
     headers: { Authorization: `Bearer ${apiKey}` },
   })
   const payload: unknown = await response.json().catch(() => null)
+  // 顺手收下服务端声明的窗口大小：context_window / max_output_tokens 是权威预算
+  absorbModelsPayload(payload)
   const data =
     typeof payload === 'object' && payload !== null && Array.isArray((payload as { data?: unknown }).data)
       ? ((payload as { data: unknown[] }).data as unknown[])

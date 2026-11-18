@@ -1,5 +1,6 @@
 import { translate, type TranslationMessage } from '../../i18n/index.js'
 import { readMessageEvent } from './parseEvent.js'
+import { absorbModelsPayload } from './modelLimits.js'
 import { readServerSentEvents } from './sse.js'
 import type {
   ApiErrorBody,
@@ -89,13 +90,14 @@ const anthropicHeaders = (apiKey: string, beta: boolean): Record<string, string>
   ...(beta ? { 'anthropic-beta': FILES_BETA } : {}),
 })
 
-/** 用 GET /models 校验 API Key（不产生费用） */
+/** 用 GET /models 校验 API Key（不产生费用）；顺手记下服务端声明的窗口大小 */
 export const verifyApiKey = async (apiKey: string, signal?: AbortSignal): Promise<void> => {
-  await request(`${API_ORIGIN}/models`, {
+  const response = await request(`${API_ORIGIN}/models`, {
     method: 'GET',
     headers: { Authorization: `Bearer ${apiKey}` },
     signal,
   })
+  absorbModelsPayload(await response.json().catch(() => null))
 }
 
 /**

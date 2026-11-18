@@ -16,6 +16,13 @@ import {
   type ContextOverflow,
 } from '../api/errors.js'
 import { cancelUpload, describeUploadError, uploadAttachment, useUploads } from '../attachments.js'
+import {
+  contextBudgetFor,
+  estimateTokens,
+  learnContextLimit,
+  maxOutputFor,
+  readLearnedLimit,
+} from '../api/modelLimits.js'
 import { showToast } from '../../components/base/toastState.js'
 import { DEFAULT_SYSTEM_PROMPT, useSettings } from '../settings.js'
 import { recordUsage } from './usage.js'
@@ -1151,6 +1158,23 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
             : undefined
         // 记录本轮请求里每个文件块的位置，服务端拒绝某张图时据此精确定位
         locations.clear()
+        const model = initial.model ?? currentModel()
+        const maxTokens = maxOutputFor(model)
+        // 历史可用的 token 预算：窗口总量 - system - 本轮提问 - 输出预留 - 20% 余量。
+        // 没有窗口信息（服务端没给也没报过错）时返回 undefined，退回「撞到再砍」的老路。
+        const budget = contextBudgetFor(model)
+        // /models 声明的 1M 窗口只是「能力上限」，服务端实际放行多少要看报错。
+        // 报过错长就说明真实窗口更小，此时窗口本身已经很紧，不要再乘 0.8 留余量。
+        const tight = (readLearnedLimit(model) ?? 0) > 0
+        const historyTokenBudget = budget
+          ? Math.max(
+              0,
+              Math.floor(
+                (budget - estimateTokens(effectiveSystemPrompt()) - estimateTokens(prepared.question.content) - maxTokens) *
+                  (tight ? 1 : 0.8)
+              )
+            )
+          : undefined
         const messages = toRequestMessages(
           prepared.history,
           prepared.question,
@@ -1160,12 +1184,14 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
           summary,
           locations,
           skippedFiles,
-          trimFactor
+          trimFactor,
+          historyTokenBudget
         )
         const events = streamMessage(
           useSettings.getState().apiKey ?? '',
           {
-            model: initial.model ?? currentModel(),
+            model,
+            max_tokens: maxTokens,
             system: effectiveSystemPrompt(),
             messages,
             thinking: { type: initial.thinking ? 'enabled' : 'disabled' },
@@ -1244,14 +1270,16 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
             continue
           }
         }
-        // 上下文超长：服务端拒收整轮请求。逐次砍掉更早的轮次后重发，直到能过或砍到底。
-        // 只在本轮还没收到任何内容块时重试，避免重复计费。
         // 上下文超长：服务端拒收整轮请求。按比例逐步缩短历史后重发，直到能过或只剩 1 轮。
         // 只在本轮还没收到任何内容块时重试，避免重复计费。
         // 砍到只剩 1 轮仍超长，说明是本轮这条提问本身太大，再砍无用，直接报错。
         if (attempt < CONTEXT_TRIM_LIMIT && !receivedContent) {
           const overflow = getContextOverflow(error)
           if (overflow) {
+            // 服务端报的上限是当前部署的真实窗口：记下来，下一轮请求按它提前裁剪，不再先撞墙
+            if (overflow.limit) {
+              learnContextLimit(initial.model ?? currentModel(), overflow.limit)
+            }
             const next = trimFactor * 2
             const exhausted = Math.floor(contextRounds / next) < 1
             if (contextRounds > 1 && !exhausted) {

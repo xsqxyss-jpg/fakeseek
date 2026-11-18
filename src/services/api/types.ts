@@ -178,6 +178,11 @@ export type DeepseekReadUrlTool = {
 
 export type CreateMessageRequest = {
   model: ChatModel
+  /**
+   * 输出 token 上限。官方把它列为可选，且「不传时的默认值与实际上限取决于 model / thinking / effort」，
+   * 等于把窗口大小交给服务端默认值决定；显式给出才能让预算可预期。
+   */
+  max_tokens?: number
   system: string
   messages: MessageParam[]
   thinking: { type: 'enabled' | 'disabled' }

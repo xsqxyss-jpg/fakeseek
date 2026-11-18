@@ -1,4 +1,5 @@
 import { completeMessage } from '../api/client.js'
+import { maxOutputFor } from '../api/modelLimits.js'
 import type { ChatModel } from '../api/types.js'
 import { getContextRounds } from './reply.js'
 import type { Message } from './types.js'
@@ -83,6 +84,8 @@ export const ensureContextSummary = async (
       apiKey,
       {
         model,
+        // 摘要请求同样显式给出输出上限，别让服务端按默认值猜
+        max_tokens: maxOutputFor(model),
         system: SUMMARY_SYSTEM,
         messages: [{ role: 'user', content: prompt }],
         thinking: { type: 'disabled' },
