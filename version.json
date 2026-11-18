@@ -1,7 +1,7 @@
 {
-  "version": "1.0.2",
-  "versionCode": 3,
-  "url": "https://github.com/xsqxyss-jpg/fakeseek/releases/download/v1.0.2/fakeseek-v1.0.2.apk",
-  "notes": "导入历史后若仍有图片无法发送，现在只跳过报错点名的那一张并继续对话，不再让整轮请求失败；跳过时会有轻提示。",
+  "version": "1.0.3",
+  "versionCode": 4,
+  "url": "https://github.com/xsqxyss-jpg/fakeseek/releases/download/v1.0.3/fakeseek-v1.0.3.apk",
+  "notes": "本次更新：修复键盘弹起时输入框被遮挡；输入卡对齐官方——没打字时显示语音钮、打字后变发送箭头，加号弹出拍照/相册/文件面板，更多入口移到顶栏正中。",
   "publishedAt": "2026-11-18"
 }
