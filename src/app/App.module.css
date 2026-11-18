@@ -1,13 +1,14 @@
 /* 网页铺满整个窗口（沉浸）：系统栏与键盘高度由原生注入成 CSS 变量，
    各区域自己吃——聊天页顶栏吃状态栏高度（高），侧栏从状态栏下方开始（低）。
-   底部统一让开 --safe-bottom（导航条与键盘取较高者），键盘弹出时输入卡自动抬高。 */
+   底部让开 --safe-bottom（导航条）；--ime-comp 只在键盘没压缩视口时补差额，
+   且只由 .frame 追加，其余消费点仍只吃 --safe-bottom，不会重复扣。 */
 .frame {
   position: absolute;
   inset: 0;
   box-sizing: border-box;
   display: flex;
   overflow: hidden;
-  padding-bottom: var(--safe-bottom, 0px);
+  padding-bottom: calc(var(--safe-bottom, 0px) + var(--ime-comp, 0px));
   background-color: var(--dsw-alias-bg-base);
   transition: padding-bottom 0.15s ease-out;
 }

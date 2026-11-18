@@ -105,6 +105,74 @@ export const isImageRejectedError = (error: unknown): boolean => {
   return /You have uploaded an (unsupported|invalid) (file|image)/i.test(error.message)
 }
 
+/** 上下文超长：服务端拒绝整轮请求，必须裁剪历史后重发 */
+export type ContextOverflow = {
+  /** 本次请求的 token 数；文案里没有时为空 */
+  tokens?: number
+  /** 服务端允许的上限；这是当前部署的真实窗口，比任何内置常量都准 */
+  limit?: number
+}
+
+const OVERFLOW_PATTERNS = [
+  /(?:input|prompt)\s+(?:is\s+)?too\s+long/i,
+  /exceeds?\s+(?:the\s+)?(?:maximum|max)\s+(?:context|prompt|input)?\s*(?:length|tokens?)/i,
+  /context[_\s]length[_\s]exceeded/i,
+  /maximum\s+context\s+length/i,
+]
+
+/**
+ * 识别「历史太长，整轮被拒」的 400。不同网关文案差异很大：
+ * 官方是 prompt is too long，自建/中转常见 "user input too long, 248783 tokens exceeds max 32768 tokens"。
+ * 命中后由调用方裁剪历史重发，并把上限记下来，避免每次都在同一条报错上撞墙。
+ */
+/** 取「上限」数值：贴着 max / maximum / limit 关键字的那一个，比按大小猜可靠 */
+const LIMIT_PATTERNS = [
+  /(?:max|maximum|limit)\s*(?:context\s*length\s*)?(?:is|:|=)?\s*(\d{3,9})/i,
+  /(\d{3,9})\s*(?:tokens?\s*)?(?:maximum|max|limit)\b/i,
+]
+
+/** 取「实际 token 数」：优先贴着 resulted in / actual 的那一个，其次第一个 "N tokens" */
+const TOKENS_PATTERNS = [
+  /(?:resulted\s+in|actual(?:ly)?|got|input\s+(?:is|has|contains))\s*[:=]?\s*(\d{3,9})/i,
+  /(\d{3,9})\s*tokens?\b/i,
+]
+
+const pick = (body: string, patterns: RegExp[]): number | undefined => {
+  for (const pattern of patterns) {
+    const matched = pattern.exec(body)
+    if (matched) {
+      return Number(matched[1])
+    }
+  }
+  return undefined
+}
+
+export const getContextOverflow = (error: unknown): ContextOverflow | null => {
+  if (!(error instanceof ApiError) || error.status !== 400) {
+    return null
+  }
+  const { message } = error
+  if (!OVERFLOW_PATTERNS.some((pattern) => pattern.test(message))) {
+    return null
+  }
+  // 先把 request_id 摘掉，避免里面的数字被当成 token 数
+  const body = message.replace(/\(request_id:[\s\S]*?\)/gi, '')
+  let limit = pick(body, LIMIT_PATTERNS)
+  let tokens = pick(body, TOKENS_PATTERNS)
+  if (limit === undefined && tokens === undefined) {
+    // 文案里没有关键字：按「小的当下限、大的当实际」兜底
+    const numbers = [...body.matchAll(/\b(\d{3,9})\b/g)].map((item) => Number(item[1]))
+    if (numbers.length >= 2) {
+      const sorted = [...numbers].sort((a, b) => a - b)
+      limit = sorted[0]
+      tokens = sorted[sorted.length - 1]
+    } else if (numbers.length === 1) {
+      limit = numbers[0]
+    }
+  }
+  return { tokens, limit }
+}
+
 /** 报错点名的位置：请求 messages 数组的下标，以及该消息 content 数组的下标 */
 export type RejectedImagePath = { messageIndex: number; blockIndex: number }
 

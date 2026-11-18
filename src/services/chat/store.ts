@@ -7,7 +7,14 @@ import {
   resetContextSummaries,
 } from './contextSummary.js'
 import type { ChatModel, CreateMessageRequest } from '../api/types.js'
-import { extractFileIds, getFileErrorCode, getRejectedImagePath, isRetryableApiError } from '../api/errors.js'
+import {
+  extractFileIds,
+  getContextOverflow,
+  getFileErrorCode,
+  getRejectedImagePath,
+  isRetryableApiError,
+  type ContextOverflow,
+} from '../api/errors.js'
 import { cancelUpload, describeUploadError, uploadAttachment, useUploads } from '../attachments.js'
 import { showToast } from '../../components/base/toastState.js'
 import { DEFAULT_SYSTEM_PROMPT, useSettings } from '../settings.js'
@@ -73,6 +80,8 @@ const SAFETY_CHECK = { level: 'high' } as const
 const FILE_RETRY_LIMIT = 2
 /** 逐个摘掉被拒图片后重发的次数上限；历史图片可能有多张不可用 */
 const IMAGE_SKIP_LIMIT = 8
+/** 上下文超长后裁剪重发的次数上限；每轮砍掉一半，8 次足以从百万级降到一轮 */
+const CONTEXT_TRIM_LIMIT = 8
 /** 退避基数，第 n 次重试等待 2^n 倍；连续失败达到上限就放弃，把原始报错展示出来 */
 const FILE_RETRY_BASE_DELAY = 1000
 
@@ -1047,6 +1056,22 @@ const notifySkippedFile = () => {
   showToast({ key: 'imageSkippedNotice' })
 }
 
+/** 上下文超长自动裁剪：告诉用户历史被缩短了，否则会以为模型莫名失忆 */
+const notifyContextTrimmed = (overflow: ContextOverflow) => {
+  showToast({
+    key: overflow.limit ? 'contextTrimmedWithLimit' : 'contextTrimmed',
+    params: overflow.limit ? { limit: overflow.limit } : undefined,
+  })
+}
+
+/** 历史砍到底仍然超长：本轮提问本身太大，明确说明而不是反复重试 */
+const notifyContextTooLarge = (overflow: ContextOverflow) => {
+  showToast({
+    key: overflow.limit ? 'contextTooLargeWithLimit' : 'contextTooLarge',
+    params: overflow.limit ? { limit: overflow.limit } : undefined,
+  })
+}
+
 /** 重传前的退避等待；停止生成时立即返回，由调用方按已停止收尾 */
 const waitForRetry = (attempt: number, signal: AbortSignal) =>
   new Promise<void>((resolve) => {
@@ -1088,6 +1113,10 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
   const skippedFiles = new Set<string>()
   /** 已经因图片被拒重发过几次；与 file_id 失效的重试次数分开计数，互不挤占 */
   let imageSkips = 0
+  /** 上下文超长后的收缩倍数：每次命中翻倍（1→2→4→8…），轮数按比例减半 */
+  let trimFactor = 1
+  /** 本轮可用的历史轮次总数，用于判断是否已经砍到底 */
+  let contextRounds = 0
   /** 本轮请求里每个文件块的位置，服务端拒绝某张图时据此精确定位 */
   const locations: FileBlockLocation = new Map()
 
@@ -1099,6 +1128,7 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
       try {
         const prepared = await prepareFiles(sessionId, request, controller.signal)
         preparing = false
+        contextRounds = getContextRounds(prepared.history).length
         // 附件就绪后获取本轮信息；续写沿用原回答快照，重新生成的快照独立保存。
         const latestReminder = prepared.prefix
           ? prepared.prefix.latestReminder
@@ -1129,7 +1159,8 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
           latestReminder,
           summary,
           locations,
-          skippedFiles
+          skippedFiles,
+          trimFactor
         )
         const events = streamMessage(
           useSettings.getState().apiKey ?? '',
@@ -1211,6 +1242,32 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
               break
             }
             continue
+          }
+        }
+        // 上下文超长：服务端拒收整轮请求。逐次砍掉更早的轮次后重发，直到能过或砍到底。
+        // 只在本轮还没收到任何内容块时重试，避免重复计费。
+        // 上下文超长：服务端拒收整轮请求。按比例逐步缩短历史后重发，直到能过或只剩 1 轮。
+        // 只在本轮还没收到任何内容块时重试，避免重复计费。
+        // 砍到只剩 1 轮仍超长，说明是本轮这条提问本身太大，再砍无用，直接报错。
+        if (attempt < CONTEXT_TRIM_LIMIT && !receivedContent) {
+          const overflow = getContextOverflow(error)
+          if (overflow) {
+            const next = trimFactor * 2
+            const exhausted = Math.floor(contextRounds / next) < 1
+            if (contextRounds > 1 && !exhausted) {
+              trimFactor = next
+              notifyContextTrimmed(overflow)
+              await waitForRetry(0, controller.signal)
+              if (controller.signal.aborted) {
+                reply = settleReply(reply, 'stopped', Date.now())
+                break
+              }
+              continue
+            }
+            if (exhausted) {
+              // 已经砍到底还是超：说明本轮提问自身过大，明确告诉用户，别默默失败
+              notifyContextTooLarge(overflow)
+            }
           }
         }
         if (error instanceof ApiError && error.kind === 'interrupted' && reply.stopReason) {

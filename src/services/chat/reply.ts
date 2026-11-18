@@ -329,7 +329,9 @@ export const toRequestMessages = (
   /** 更早历史的压缩摘要；有值时作为首条 user 消息携带，模型不断片 */
   contextSummary?: string,
   locations?: FileBlockLocation,
-  skip?: ReadonlySet<string>
+  skip?: ReadonlySet<string>,
+  /** 上下文超长后的收缩倍数：1 = 不收缩，2 = 减半，4 = 四分之一……由调用方逐次翻倍 */
+  trimFactor = 1
 ): MessageParam[] => {
   const messages: MessageParam[] = []
   let previousReminder: string | undefined
@@ -366,9 +368,14 @@ export const toRequestMessages = (
   }
   // 上下文压缩（可选）：只带最近 N 轮完整问答，更早轮次整体省略。
   // 轮次天然成对，不会切断消息或丢失 signature；0 = 不限制，保持官方全量行为。
+  // trimFactor 是「服务端报超长」后的收缩倍数：每次命中翻倍，轮数按比例减半，
+  // 至少保留最近 1 轮，保证本轮提问仍有上下文。
   const keepRounds = useSettings.getState().contextKeepRounds
   const rounds = getContextRounds(history)
-  for (const [user, reply] of keepRounds > 0 ? rounds.slice(-keepRounds) : rounds) {
+  const base = keepRounds > 0 ? Math.min(keepRounds, rounds.length) : rounds.length
+  const limit = Math.max(1, Math.floor(base / trimFactor))
+  const kept = limit >= rounds.length ? rounds : rounds.slice(-limit)
+  for (const [user, reply] of kept) {
     // 历史提问没有文字、附件也都没有 serverId 时，提问为空，连同回答一起省略。
     if (!user.content && toFileBlocks(user.files, skip).length === 0) {
       continue

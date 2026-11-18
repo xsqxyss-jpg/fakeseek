@@ -265,6 +265,12 @@ export const en = {
   uploadFileStatusFailed: 'Upload failed',
   imageSkippedNotice:
     'One earlier image could not be sent and was skipped. The conversation continues.',
+  contextTrimmed: 'The conversation was too long, so earlier history was shortened and resent.',
+  contextTrimmedWithLimit:
+    'The conversation exceeded the server limit ({limit} tokens). Earlier history was shortened and resent.',
+  contextTooLarge: 'This message is too long for the server. Please shorten it or send it in parts.',
+  contextTooLargeWithLimit:
+    'This message exceeds the server limit ({limit} tokens) even with all history removed. Please shorten it or send it in parts.',
   uploadRetry: '{message}. Click to retry',
   chatInputPlaceholderChat: 'Message or hold to talk',
   deactivatedThinkTooltip: 'Think before responding to solve reasoning problems',

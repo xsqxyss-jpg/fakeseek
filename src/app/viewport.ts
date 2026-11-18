@@ -46,32 +46,44 @@ export const usePreventPageScroll = (enabled: boolean) => {
 export const useMobileViewport = (enabled: boolean) => {
   const frameRef = useRef<HTMLDivElement>(null)
 
-  // --safe-bottom 只有一个真实来源：底部要额外让开多少。
-  // 键盘没有压缩视觉视口（部分机型 adjustPan）时才需要让开键盘高度；
-  // 视觉视口已经缩小（adjustResize）时再让一次就会把内容区扣两遍、输入卡被顶到顶上。
+  // --safe-bottom 保持「底部导航条高度」不变（原生注入，已在真机验证）。
+  // 部分机型的 WebView 在键盘弹出时不缩小视觉视口，键盘会盖住输入卡；
+  // 这里只在那种情况下补差额，交给 --ime-comp，仅由 .frame 追加，
+  // 其他消费点（输入卡、侧栏、设置页）仍只吃 --safe-bottom，不会重复扣。
+  // 基准高度用「键盘收起时的 visualViewport.height」实测值，不依赖 window.innerHeight，
+  // 因为不同 WebView 是否随键盘缩小布局视口并不一致。
   useEffect(() => {
     if (!enabled) {
       return
     }
     const root = document.documentElement
+    const viewport = window.visualViewport
+    const read = (name: string) =>
+      parseFloat(getComputedStyle(root).getPropertyValue(name)) || 0
+    /** 键盘收起时的可视高度；键盘弹出时视口若真的缩小，差额就记在这里 */
+    let baseline = viewport?.height ?? window.innerHeight
     const sync = () => {
-      const nav = parseFloat(getComputedStyle(root).getPropertyValue('--nav-bottom')) || 0
-      const ime = parseFloat(getComputedStyle(root).getPropertyValue('--ime-height')) || 0
-      const viewport = window.visualViewport
-      // 布局视口高度 - 视觉视口高度 = 键盘实际吃掉的像素
-      const eaten = viewport ? Math.max(0, window.innerHeight - viewport.height) : 0
-      // 键盘没吃满的那部分才需要补；键盘本身已经把导航条盖住了，不能再叠加导航条高度
-      const bottom = ime > 0 ? Math.max(0, ime - eaten) : nav
-      root.style.setProperty('--safe-bottom', `${bottom}px`)
+      const ime = read('--ime-height')
+      const nav = read('--nav-bottom')
+      const height = viewport?.height ?? window.innerHeight
+      if (ime <= 0) {
+        // 键盘收起：记住这一屏的可视高度，作为下次判断的基准，同时清掉补偿
+        baseline = height
+        root.style.setProperty('--ime-comp', '0px')
+        return
+      }
+      // 键盘高度 - 视口已让开的高度 - 导航条已让开的高度 = 还差多少没让开
+      const shrunk = Math.max(0, baseline - height)
+      const extra = Math.max(0, ime - shrunk - nav)
+      root.style.setProperty('--ime-comp', `${extra}px`)
     }
     sync()
-    const viewport = window.visualViewport
     viewport?.addEventListener('resize', sync)
     window.addEventListener('resize', sync)
     return () => {
       viewport?.removeEventListener('resize', sync)
       window.removeEventListener('resize', sync)
-      root.style.removeProperty('--safe-bottom')
+      root.style.removeProperty('--ime-comp')
     }
   }, [enabled])
 

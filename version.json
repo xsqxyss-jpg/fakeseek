@@ -1,7 +1,7 @@
 {
-  "version": "1.0.4",
-  "versionCode": 5,
-  "url": "https://github.com/xsqxyss-jpg/fakeseek/releases/download/v1.0.4/fakeseek-v1.0.4.apk",
-  "notes": "修复键盘弹起时输入卡被顶到屏幕上方的问题：底部安全区只让开一次，不再把键盘高度扣两遍。",
+  "version": "1.0.5",
+  "versionCode": 6,
+  "url": "https://github.com/xsqxyss-jpg/fakeseek/releases/download/v1.0.5/fakeseek-v1.0.5.apk",
+  "notes": "1) 修复键盘弹起时输入卡被顶到屏幕上方：底部安全区只让开一次。2) 新增上下文超长自动重试：服务端报 token 超限时按比例缩短历史后重发，不再直接报错；历史砍到底仍超长时明确提示本条消息过长。",
   "publishedAt": "2026-11-18"
 }

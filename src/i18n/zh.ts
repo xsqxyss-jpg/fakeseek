@@ -256,6 +256,11 @@ export const zh = {
     '上传的文件包含暂未支持的文件格式，请转换文件格式后重试。支持 PDF、DOC、XLSX、PPT、图片、文本、代码等。',
   uploadFileStatusFailed: '上传失败',
   imageSkippedNotice: '有一张历史图片无法发送，已跳过，对话继续',
+  contextTrimmed: '对话历史过长，已自动缩短后重发',
+  contextTrimmedWithLimit: '对话历史超过服务端上限（{limit} tokens），已自动缩短后重发',
+  contextTooLarge: '这条消息本身太长，服务端无法处理。请删减内容或分段发送。',
+  contextTooLargeWithLimit:
+    '这条消息超过服务端上限（{limit} tokens），历史已缩到最短仍超。请删减内容或分段发送。',
   uploadRetry: '{message}，点击重试',
   chatInputPlaceholderChat: '发消息或按住说话',
   deactivatedThinkTooltip: '先思考后回答，解决推理问题',
