@@ -72,6 +72,99 @@ export const checkArchiveFormat = async (file: File): Promise<void> => {
   fail('backupUnrecognized')
 }
 
+/** 扫描结果的单个会话条目：列表展示与勾选共用 */
+export type ArchiveSessionInfo = {
+  id: string
+  title: string
+  messageCount: number
+  insertedAt: number
+  updatedAt: number
+}
+
+/**
+ * 扫描归档：校验 manifest 与会话结构，返回会话列表（不含内容），供导入前勾选。
+ * 图片条目只做 CRC 校验（skipEntry），不解压不写库；扫描耗时主要花在校验流上。
+ * onProgress 可选：0-1 的文件字节进度。
+ */
+export const listArchive = async (
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<ArchiveSessionInfo[]> => {
+  if (!(await isZipFile(file))) {
+    fail('backupUnrecognized')
+  }
+  const imported = new Set<string>()
+  let manifest = false
+  let index: SessionIndexEntry[] | undefined
+  let currentSessionId: string | undefined
+  const list: ArchiveSessionInfo[] = []
+  try {
+    for await (const entry of readArchive(file)) {
+      const { path } = entry
+      const sessionId = parseSessionPath(path)
+      if (!manifest) {
+        if (path !== MANIFEST_PATH) {
+          fail('backupUnrecognized')
+        }
+        checkManifest(await readJson(entry))
+        manifest = true
+      } else if (sessionId !== null && !index) {
+        const local = toLocalSession(readSessionFile(await readJson(entry)))
+        if (local.session.id !== sessionId || imported.has(sessionId)) {
+          fail('backupIncomplete')
+        }
+        imported.add(sessionId)
+        currentSessionId = sessionId
+        list.push({
+          id: local.session.id,
+          title: local.session.title,
+          messageCount: local.session.messages.length,
+          insertedAt: local.session.createdAt,
+          updatedAt: local.session.updatedAt,
+        })
+      } else if (path === USER_PATH && !index && imported.size === 0) {
+        await skipEntry(entry)
+      } else if (path === INDEX_PATH && !index) {
+        index = readSessionIndex(await readJson(entry))
+      } else if (
+        /^chat_sessions\//.test(path) &&
+        (index
+          ? imported.has(/^chat_sessions\/([^/]+)_files\//.exec(path)?.[1] ?? '')
+          : currentSessionId !== undefined && path.startsWith(sessionFilesDir(currentSessionId)))
+      ) {
+        // 该会话的图片条目（含交错排列）：校验 CRC 后跳过，不解析
+        await skipEntry(entry)
+      } else {
+        fail('backupIncomplete')
+      }
+      if (onProgress) {
+        onProgress(Math.min(1, entry.endOffset / entry.totalSize))
+      }
+    }
+  } catch (error) {
+    throw error instanceof ArchiveError ? new BackupError('backupIncomplete') : error
+  }
+  if (!manifest) {
+    fail('backupUnrecognized')
+  }
+  // index 是官方导出的会话清单：扫描阶段没逐个解析到的会话用它补齐元数据
+  if (index) {
+    const scanned = new Set(list.map((item) => item.id))
+    for (const entry of index) {
+      if (!scanned.has(entry.id)) {
+        list.push({
+          id: entry.id,
+          title: entry.title ?? '',
+          messageCount: entry.message_count,
+          insertedAt: Date.parse(entry.inserted_at),
+          updatedAt: Date.parse(entry.updated_at),
+        })
+      }
+    }
+  }
+  return list
+}
+
 /**
  * 流式导入：manifest → user（不导入）→ 全部会话 JSON → index → 全部图片。
  * 也支持会话与图片交错排列、index 位于末尾的条目顺序。
@@ -81,12 +174,15 @@ export const checkArchiveFormat = async (file: File): Promise<void> => {
  */
 export const importArchive = async (
   file: File,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  /** 勾选导入的会话 id 集合；不传 = 全部导入。未勾选的会话与其图片条目直接跳过 */
+  selectedIds?: ReadonlySet<string>
 ): Promise<void> => {
   if (!(await isZipFile(file))) {
     fail('backupUnrecognized')
   }
   const imported = new Set<string>()
+  const skipped = new Set<string>()
   const images = new Map<string, string>()
   /** 已保存的原件：文件 ID → MIME。同一图片出现在多个会话目录时只保存一次。 */
   const stored = new Map<string, string>()
@@ -123,12 +219,18 @@ export const importArchive = async (
         if (local.session.id !== sessionId || imported.has(sessionId)) {
           fail('backupIncomplete')
         }
-        imported.add(sessionId)
-        currentSessionId = sessionId
-        for (const [imagePath, id] of local.images) {
-          images.set(imagePath, id)
+        // 勾选过滤：未勾选的会话记入 skipped，其图片条目后面也一并跳过
+        if (selectedIds && !selectedIds.has(sessionId)) {
+          skipped.add(sessionId)
+          currentSessionId = sessionId
+          await skipEntry(entry)
+        } else {
+          imported.add(sessionId)
+          for (const [imagePath, id] of local.images) {
+            images.set(imagePath, id)
+          }
+          await db.addStagingSession(local.session)
         }
-        await db.addStagingSession(local.session)
       } else if (path === INDEX_PATH && !index) {
         index = readSessionIndex(await readJson(entry))
       } else if (
@@ -139,6 +241,9 @@ export const importArchive = async (
         // 没有被引用的条目不保存，引用了但缺失的图片只展示文件名。
         const id = images.get(path)
         await (id === undefined ? skipEntry(entry) : saveImage(entry, id))
+      } else if (/^chat_sessions\//.test(path)) {
+        // 未勾选会话的 JSON 或图片条目（交错出现）：跳过，不视为异常
+        await skipEntry(entry)
       } else {
         fail('backupIncomplete')
       }
@@ -153,13 +258,14 @@ export const importArchive = async (
   if (!manifest) {
     fail('backupUnrecognized')
   }
-  // index 只列出成功写出的会话，与会话文件一一对应。
+  // index 只列出成功写出的会话，与会话文件一一对应；
+  // 勾选模式下 skipped 的会话是刻意不导入的，不视作缺失。
   const listed = new Set(index?.map((entry) => entry.id))
   if (
     !index ||
     listed.size !== index.length ||
-    listed.size !== imported.size ||
-    [...imported].some((id) => !listed.has(id))
+    listed.size !== imported.size + skipped.size ||
+    [...listed].some((id) => !imported.has(id) && !skipped.has(id))
   ) {
     fail('backupIncomplete')
   }

@@ -251,6 +251,12 @@ export const en = {
     'Not enough storage space on this device. The import was interrupted. Free up space and try again.',
   historyImporting: 'Importing. Keep this page open and stay on this screen until it finishes…',
   historyImportingProgress: 'Importing {percent}%…',
+  historyScanning: 'Scanning the archive for chats…',
+  historyScanningProgress: 'Scanning {percent}%…',
+  historyImportPickPrompt: 'Pick which chats to import. Unchecked chats will be skipped:',
+  historyImportSelectAll: 'Select all',
+  historyImportSelected: 'Import selected ({count})',
+  historyImportMessageCount: '{count} messages',
   historyExportFailed: 'Export failed: {message}',
   exportAllLabel: 'Export all chats',
   historyExportDescription:

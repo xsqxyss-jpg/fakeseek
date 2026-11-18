@@ -243,6 +243,12 @@ export const zh = {
   historyImportNoSpace: '手机存储空间不足，导入中断。请清理空间后重试。',
   historyImporting: '正在导入，请保持页面打开，不要离开或锁屏操作其他 App…',
   historyImportingProgress: '导入中 {percent}%…',
+  historyScanning: '正在扫描归档中的会话…',
+  historyScanningProgress: '扫描中 {percent}%…',
+  historyImportPickPrompt: '选择要导入的对话，未勾选的不会导入：',
+  historyImportSelectAll: '全选',
+  historyImportSelected: '导入所选项（{count}）',
+  historyImportMessageCount: '{count} 条消息',
   historyExportFailed: '导出失败：{message}',
   exportAllLabel: '导出所有历史对话',
   historyExportDescription:

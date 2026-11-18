@@ -24,9 +24,11 @@ import {
   clearHistory,
   exportHistory,
   importHistory,
+  listHistoryArchive,
 } from '../../services/chat/backup.js'
 import { useChatStore } from '../../services/chat/store.js'
 import { isQuotaError } from '../../services/chat/db.js'
+import type { ArchiveSessionInfo } from '../../services/chat/history/importArchive.js'
 import { regionCodes, getRegionName, provinces } from '../../services/location.js'
 import {
   CONTEXT_ROUNDS_OPTIONS,
@@ -176,7 +178,8 @@ const SettingsContent = () => {
         </div>
       </Modal>
       {/* 确认弹窗：导入进行中（busy 且有进度）也保留渲染，让进度条有地方显示 */}
-      {historyImport.file || historyImport.busy ? (
+      {/* 导入弹窗三态：扫描中 / 勾选列表 / 导入进度 */}
+      {historyImport.file || historyImport.busy || historyImport.scan ? (
         <ImportConfirm historyImport={historyImport} />
       ) : null}
       {historyDelete.opened ? <DeleteAllConfirm historyDelete={historyDelete} /> : null}
@@ -564,7 +567,7 @@ const TtsVoiceSetting = () => {
   )
 }
 
-/** 覆盖导入的二次确认 + 导入中的进度展示（同一个弹窗，确认后变成进度态） */
+/** 导入确认弹窗三态：扫描会话列表 → 勾选 → 导入中进度 */
 const ImportConfirm = ({
   historyImport,
 }: {
@@ -572,7 +575,24 @@ const ImportConfirm = ({
 }) => {
   const t = useTranslate()
   const importing = historyImport.busy && historyImport.progress !== null
+  const scan = historyImport.scan
+  const scanning = scan?.scanning ?? false
+  const sessions = scan?.sessions ?? []
+  const scanProgress = scan?.progress ?? 0
+  const checked = historyImport.checked
   const percent = Math.min(99, Math.max(1, Math.round((historyImport.progress ?? 0) * 100)))
+  const allChecked = sessions.length > 0 && checked.size === sessions.length
+
+  const toggle = (id: string) => {
+    const next = new Set(checked)
+    if (next.has(id)) {
+      next.delete(id)
+    } else {
+      next.add(id)
+    }
+    historyImport.setChecked(next)
+  }
+
   return (
     <Modal
       title={t('historyImportConfirmTitle')}
@@ -590,21 +610,70 @@ const ImportConfirm = ({
               {t('historyImportingProgress', { percent: String(percent) })}
             </span>
           </div>
+        ) : scanning ? (
+          <div className={styles.importProgressRow} aria-busy="true">
+            <progress className={styles.importProgressBar} value={scanProgress} max={1} />
+            <span className={styles.importProgressText}>
+              {t('historyScanningProgress', {
+                percent: String(Math.max(1, Math.round(scanProgress * 100))),
+              })}
+            </span>
+          </div>
         ) : (
           <>
             <Button variant="outlined" size="m" autoFocus onClick={historyImport.cancel}>
               {t('cancel')}
             </Button>
-            <Button variant="dangerOutlined" size="m" onClick={() => void historyImport.confirm()}>
-              {t('historyImportConfirm')}
+            <Button
+              variant="dangerOutlined"
+              size="m"
+              disabled={checked.size === 0}
+              onClick={() => void historyImport.confirm()}
+            >
+              {t('historyImportSelected', { count: String(checked.size) })}
             </Button>
           </>
         )
       }
     >
-      <div className={styles.importConfirmText}>
-        {importing ? t('historyImporting') : t('historyImportConfirmDescription')}
-      </div>
+      {scanning ? (
+        <div className={styles.importConfirmText}>{t('historyScanning')}</div>
+      ) : (
+        <>
+          <div className={styles.importConfirmText}>{t('historyImportPickPrompt')}</div>
+          <div className={styles.importSessionList}>
+            <label className={styles.importSessionRow}>
+              <input
+                type="checkbox"
+                className={styles.importSessionCheck}
+                checked={allChecked}
+                onChange={() =>
+                  historyImport.setChecked(
+                    allChecked ? new Set() : new Set(sessions.map((item) => item.id))
+                  )
+                }
+              />
+              <span className={styles.importSessionTitle}>{t('historyImportSelectAll')}</span>
+            </label>
+            {sessions.map((item) => (
+              <label key={item.id} className={styles.importSessionRow}>
+                <input
+                  type="checkbox"
+                  className={styles.importSessionCheck}
+                  checked={checked.has(item.id)}
+                  onChange={() => toggle(item.id)}
+                />
+                <span className={styles.importSessionTitle}>
+                  {item.title || t('untitledChat')}
+                </span>
+                <span className={styles.importSessionMeta}>
+                  {t('historyImportMessageCount', { count: String(item.messageCount) })}
+                </span>
+              </label>
+            ))}
+          </div>
+        </>
+      )}
     </Modal>
   )
 }
@@ -733,16 +802,57 @@ const ContextRoundsSetting = () => {
   )
 }
 
-/** 选文件后先提示合并语义；确认后检查文件并执行导入，任何错误都提示导入失败。 */
+/** 选文件后先扫描会话列表供勾选，确认后只导入选中项；任何错误都提示导入失败。 */
 const useHistoryImport = () => {
   const [file, setFile] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<Status>(null)
   const [progress, setProgress] = useState<number | null>(null)
+  /** 扫描阶段状态：scanning=true 时弹窗显示扫描进度，完成后 sessions 即勾选列表 */
+  const [scan, setScan] = useState<{
+    scanning: boolean
+    sessions: ArchiveSessionInfo[]
+    progress: number
+  } | null>(null)
+  const [checked, setChecked] = useState<Set<string>>(new Set())
   /** 导入中的 File 引用要保留到进度结束，避免中途被 GC 影响 slice 读取 */
   const activeFile = useRef<File | null>(null)
   const importing = useRef(false)
 
+  /** 第一步：选了文件 → 流式扫描归档，列出会话供勾选 */
+  const startScan = (selected: File) => {
+    if (importing.current || busy) {
+      return
+    }
+    setFile(selected)
+    setBusy(true)
+    setStatus(null)
+    setScan({ scanning: true, sessions: [], progress: 0.02 })
+    void listHistoryArchive(selected, (value) => {
+      setScan((current) => (current ? { ...current, progress: value } : current))
+    })
+      .then((sessions) => {
+        setScan({ scanning: false, sessions, progress: 1 })
+        setChecked(new Set(sessions.map((item) => item.id)))
+      })
+      .catch((error) => {
+        setScan(null)
+        setBusy(false)
+        setFile(null)
+        setStatus({
+          key: isQuotaError(error) ? 'historyImportNoSpace' : 'historyImportFailed',
+          error: true,
+        })
+      })
+  }
+
+  const cancelScan = () => {
+    setScan(null)
+    setBusy(false)
+    setFile(null)
+  }
+
+  /** 第二步：按勾选执行导入 */
   const confirm = async () => {
     if (!file || importing.current) {
       return
@@ -750,11 +860,18 @@ const useHistoryImport = () => {
     importing.current = true
     activeFile.current = file
     setBusy(true)
+    setScan(null)
     setStatus(null)
     // 首帧就给一个非零起点，避免大文件解析 manifest 阶段进度条停在 0
     setProgress(0.01)
+    // 全选时传 undefined 走「全部导入」；部分勾选才按集合过滤
+    const partial = scan && checked.size > 0 && checked.size < scan.sessions.length
     try {
-      const count = await importHistory(file, (value) => setProgress(value))
+      const count = await importHistory(
+        file,
+        (value) => setProgress(value),
+        partial ? checked : undefined
+      )
       setStatus(
         count === 0
           ? { key: 'historyImportedNone' }
@@ -775,7 +892,18 @@ const useHistoryImport = () => {
     }
   }
 
-  return { file, busy, status, progress, select: setFile, cancel: () => setFile(null), confirm }
+  return {
+    file,
+    busy,
+    status,
+    progress,
+    scan,
+    checked,
+    setChecked,
+    select: startScan,
+    cancel: cancelScan,
+    confirm,
+  }
 }
 
 /** 导入 = 新增合并：把文件中的会话追加到本地列表，同 id 去重。 */

@@ -1,7 +1,7 @@
 {
-  "version": "1.0.8",
-  "versionCode": 9,
-  "url": "https://github.com/xsqxyss-jpg/fakeseek/releases/download/v1.0.8/fakeseek-v1.0.8.apk",
-  "notes": "导入历史体验修复：确认后显示导入进度条（按文件字节进度，大文件不再像没反应）；磁盘空间不足时单独提示；导入期间锁定弹窗防误触。",
+  "version": "1.0.9",
+  "versionCode": 10,
+  "url": "https://github.com/xsqxyss-jpg/fakeseek/releases/download/v1.0.9/fakeseek-v1.0.9.apk",
+  "notes": "导入历史大升级：选文件后先扫描归档，列出所有会话（标题+消息数），自由勾选要导入哪些（支持全选），确认后才开始导入并显示进度条。大文件（几百 MB）可以先扫描看看有什么，再挑需要的导入，时间和空间都省下来。另外：磁盘空间不足会单独提示。",
   "publishedAt": "2026-11-19"
 }

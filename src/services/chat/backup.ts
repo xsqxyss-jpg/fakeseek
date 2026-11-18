@@ -2,6 +2,7 @@ import { formatDate } from '../../utils/format.js'
 import * as db from './db.js'
 import { mergeHistory, replaceHistory, useChatStore } from './store.js'
 import type { Session } from './types.js'
+import type { ArchiveSessionInfo } from './history/importArchive.js'
 
 export { BackupError } from './history/errors.js'
 
@@ -44,15 +45,27 @@ export const exportHistory = (): Promise<{ name: string; blob: Blob }> =>
  * 通过后从 ZIP 流式写入暂存，成功才把新会话与图片原件合并进现有记录（同 id 去重，不覆盖本地）。
  * 返回本次新增的会话数；重复导入同一文件时为 0。
  * onProgress 可选：0-1 的文件字节进度，UI 据此画进度条。
+ * selectedIds 可选：只导入勾选的会话；不传 = 全部导入。
  */
 export const importHistory = (
   file: File,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  selectedIds?: ReadonlySet<string>
 ): Promise<number> =>
   enqueueBackup(async () => {
     const { checkArchiveFormat, importArchive } = await import('./history/importArchive.js')
     await checkArchiveFormat(file)
-    return mergeHistory(() => importArchive(file, onProgress))
+    return mergeHistory(() => importArchive(file, onProgress, selectedIds))
+  })
+
+/** 扫描归档：返回会话列表供勾选，不写库。onProgress：0-1 字节进度。 */
+export const listHistoryArchive = (
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<ArchiveSessionInfo[]> =>
+  enqueueBackup(async () => {
+    const { listArchive } = await import('./history/importArchive.js')
+    return listArchive(file, onProgress)
   })
 
 /** 确认删除后调用：以空历史原子替换全部本地会话与附件，保留 API Key 和其他设置。 */
