@@ -263,6 +263,8 @@ export const en = {
   uploadUnsupportedFormat:
     'The selected files include unsupported formats. Please convert them and try again. Supported: PDF, DOC, XLSX, PPT, images, text, code, and more.',
   uploadFileStatusFailed: 'Upload failed',
+  imageSkippedNotice:
+    'One earlier image could not be sent and was skipped. The conversation continues.',
   uploadRetry: '{message}. Click to retry',
   chatInputPlaceholderChat: 'Message or hold to talk',
   deactivatedThinkTooltip: 'Think before responding to solve reasoning problems',

@@ -1,7 +1,7 @@
 {
-  "version": "1.0.1",
-  "versionCode": 2,
-  "url": "https://github.com/xsqxyss-jpg/fakeseek/releases/download/v1.0.1/fakeseek-v1.0.1.apk",
-  "notes": "修复导入历史后图片发送失败：上传前把 BMP / TIFF / AVIF / SVG / ICO 等不受支持的格式，以及单边超过 4096px 的大图统一转成 JPEG；GIF 与本来就合规的小图原样直传。",
+  "version": "1.0.2",
+  "versionCode": 3,
+  "url": "https://github.com/xsqxyss-jpg/fakeseek/releases/download/v1.0.2/fakeseek-v1.0.2.apk",
+  "notes": "导入历史后若仍有图片无法发送，现在只跳过报错点名的那一张并继续对话，不再让整轮请求失败；跳过时会有轻提示。",
   "publishedAt": "2026-11-18"
 }

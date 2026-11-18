@@ -19,10 +19,11 @@ import { useSettings } from '../settings.js'
 /**
  * 文件按 Files API 的 file_id（附件的 serverId）引用：图片用 image 块，其余用 document 块。
  * 发送前 streamReply 会先补齐 serverId；仍为 null 的是本地没有原件的附件，不进入请求。
+ * skip 里的附件被服务端判为内容不可用，本轮请求不再携带，其余附件照常发送。
  */
-const toFileBlocks = (files: FileAttachment[]): FileBlockParam[] =>
-  files.flatMap(({ serverId, isImage }) =>
-    serverId
+const toFileBlocks = (files: FileAttachment[], skip?: ReadonlySet<string>): FileBlockParam[] =>
+  files.flatMap(({ id, serverId, isImage }) =>
+    serverId && !skip?.has(id)
       ? [
           {
             type: isImage ? 'image' : 'document',
@@ -203,8 +204,11 @@ const isUsableReply = (message: Message): message is AssistantMessage =>
   getReplyText(message) !== ''
 
 /** 有文件时用内容块数组：先文件后文本，文件按 Files API 的 file_id 引用 */
-const toUserParam = ({ content, files }: UserMessage): MessageParam => {
-  const blocks = toFileBlocks(files)
+const toUserParam = (
+  { content, files }: UserMessage,
+  skip?: ReadonlySet<string>
+): MessageParam => {
+  const blocks = toFileBlocks(files, skip)
   return blocks.length === 0
     ? { role: 'user', content }
     : {
@@ -297,9 +301,24 @@ export const getContextRounds = (history: Message[]): [UserMessage, AssistantMes
   return rounds
 }
 
+/** 请求里文件块的定位信息：服务端报错点名的位置 → 本地附件 id 与是否属于本轮提问 */
+export type FileBlockLocation = Map<string, { fileId: string; isCurrent: boolean }>
+
+/** 定位键：消息下标 + 内容块下标，与服务端报错文案 `messages.<i>.content.<j>` 对应 */
+export const fileBlockKey = (messageIndex: number, blockIndex: number) =>
+  `${messageIndex}:${blockIndex}`
+
+/** 与 toFileBlocks 同序：只保留有 serverId 且未被跳过的附件，保证块下标能对回本地附件 */
+const filesWithServerId = (
+  files: FileAttachment[],
+  skip?: ReadonlySet<string>
+): FileAttachment[] => files.filter((file) => file.serverId && !skip?.has(file.id))
+
 /**
  * 把会话转成请求的 messages：只保留「提问 + 有回答的回复」成对的轮次，最后接上本轮提问。
  * 失败或没有回答的轮次不进上下文。续写时末尾再带上本轮 assistant。
+ * 传入 locations 时记录每个文件块的位置，供「服务端点名某张图不可用」时精确定位；
+ * skip 里的附件（服务端已判定内容不可用）本轮不再携带。
  */
 export const toRequestMessages = (
   history: Message[],
@@ -308,7 +327,9 @@ export const toRequestMessages = (
   thinking = prefix?.thinking ?? false,
   latestReminder?: string,
   /** 更早历史的压缩摘要；有值时作为首条 user 消息携带，模型不断片 */
-  contextSummary?: string
+  contextSummary?: string,
+  locations?: FileBlockLocation,
+  skip?: ReadonlySet<string>
 ): MessageParam[] => {
   const messages: MessageParam[] = []
   let previousReminder: string | undefined
@@ -318,6 +339,24 @@ export const toRequestMessages = (
       messages.push({ role: 'latest_reminder', content: reminder })
       previousReminder = reminder
     }
+  }
+  /** 推入 user 消息；locations 有值时按块下标登记其中的文件块 */
+  const pushUser = (user: UserMessage, isCurrent: boolean) => {
+    const index = messages.length
+    const param = toUserParam(user, skip)
+    if (locations && typeof param.content !== 'string') {
+      const withServerId = filesWithServerId(user.files, skip)
+      param.content.forEach((block, blockIndex) => {
+        if (block.type !== 'image' && block.type !== 'document') {
+          return
+        }
+        const file = withServerId[blockIndex]
+        if (file) {
+          locations.set(fileBlockKey(index, blockIndex), { fileId: file.id, isCurrent })
+        }
+      })
+    }
+    messages.push(param)
   }
   if (contextSummary) {
     messages.push({
@@ -331,14 +370,15 @@ export const toRequestMessages = (
   const rounds = getContextRounds(history)
   for (const [user, reply] of keepRounds > 0 ? rounds.slice(-keepRounds) : rounds) {
     // 历史提问没有文字、附件也都没有 serverId 时，提问为空，连同回答一起省略。
-    if (!user.content && toFileBlocks(user.files).length === 0) {
+    if (!user.content && toFileBlocks(user.files, skip).length === 0) {
       continue
     }
     appendReminder(reply.latestReminder)
-    messages.push(toUserParam(user), toAssistantParam(reply))
+    pushUser(user, false)
+    messages.push(toAssistantParam(reply))
   }
   appendReminder(latestReminder)
-  messages.push(toUserParam(question))
+  pushUser(question, true)
   if (prefix?.prefix) {
     const assistant = toAssistantParam(prefix, true, thinking)
     // 没有非空白正文或有效思考时直接重发原问题，避免服务端拒绝空 Prefill。

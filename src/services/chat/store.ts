@@ -7,8 +7,9 @@ import {
   resetContextSummaries,
 } from './contextSummary.js'
 import type { ChatModel, CreateMessageRequest } from '../api/types.js'
-import { extractFileIds, getFileErrorCode, isRetryableApiError } from '../api/errors.js'
+import { extractFileIds, getFileErrorCode, getRejectedImagePath, isRetryableApiError } from '../api/errors.js'
 import { cancelUpload, describeUploadError, uploadAttachment, useUploads } from '../attachments.js'
+import { showToast } from '../../components/base/toastState.js'
 import { DEFAULT_SYSTEM_PROMPT, useSettings } from '../settings.js'
 import { recordUsage } from './usage.js'
 import { appendBranch, getVisibleMessages, normalizeSession, selectVersion } from './branches.js'
@@ -24,9 +25,11 @@ import { createLatestReminder } from './latestReminder.js'
 import {
   applyEvent,
   canContinueReply,
+  fileBlockKey,
   getContextRounds,
   settleReply,
   toRequestMessages,
+  type FileBlockLocation,
 } from './reply.js'
 import {
   toSessionSummary,
@@ -68,6 +71,8 @@ const SESSION_CACHE_LIMIT = 5
 const SAFETY_CHECK = { level: 'high' } as const
 /** 服务端判定 file_id 失效后，重新补传并重发的最多次数（不含首次请求） */
 const FILE_RETRY_LIMIT = 2
+/** 逐个摘掉被拒图片后重发的次数上限；历史图片可能有多张不可用 */
+const IMAGE_SKIP_LIMIT = 8
 /** 退避基数，第 n 次重试等待 2^n 倍；连续失败达到上限就放弃，把原始报错展示出来 */
 const FILE_RETRY_BASE_DELAY = 1000
 
@@ -1022,6 +1027,26 @@ const reuploadInvalidatedFiles = (sessionId: string, request: Request, error: un
   return true
 }
 
+/**
+ * 服务端拒绝某张图片时，报错文案里点名了它在请求里的位置（messages.<i>.content.<j>）。
+ * 据此查回本地附件：只有历史图片才自动跳过；本轮刚选的图片跳过会让人莫名其妙，交给原有报错。
+ */
+const resolveRejectedFile = (
+  error: unknown,
+  locations: FileBlockLocation
+): { fileId: string; isCurrent: boolean } | null => {
+  const path = getRejectedImagePath(error)
+  if (!path) {
+    return null
+  }
+  return locations.get(fileBlockKey(path.messageIndex, path.blockIndex)) ?? null
+}
+
+/** 跳过了无法发送的历史图片：用轻提示说明，避免用户以为模型看到了那张图 */
+const notifySkippedFile = () => {
+  showToast({ key: 'imageSkippedNotice' })
+}
+
 /** 重传前的退避等待；停止生成时立即返回，由调用方按已停止收尾 */
 const waitForRetry = (attempt: number, signal: AbortSignal) =>
   new Promise<void>((resolve) => {
@@ -1059,6 +1084,13 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
   }
   streamFlushes.set(sessionId, flush)
 
+  /** 服务端判定内容不可用、本轮请求需要摘掉的附件 id */
+  const skippedFiles = new Set<string>()
+  /** 已经因图片被拒重发过几次；与 file_id 失效的重试次数分开计数，互不挤占 */
+  let imageSkips = 0
+  /** 本轮请求里每个文件块的位置，服务端拒绝某张图时据此精确定位 */
+  const locations: FileBlockLocation = new Map()
+
   try {
     for (let attempt = 0; ; attempt += 1) {
       /** 附件补齐前出错属于上传失败，请求还没有发出 */
@@ -1087,13 +1119,17 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
                 controller.signal
               )
             : undefined
+        // 记录本轮请求里每个文件块的位置，服务端拒绝某张图时据此精确定位
+        locations.clear()
         const messages = toRequestMessages(
           prepared.history,
           prepared.question,
           prepared.prefix,
           initial.thinking ?? false,
           latestReminder,
-          summary
+          summary,
+          locations,
+          skippedFiles
         )
         const events = streamMessage(
           useSettings.getState().apiKey ?? '',
@@ -1159,6 +1195,23 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
             break
           }
           continue
+        }
+        // 个别附件内容被拒（格式不支持、损坏、超大）：只摘掉报错点名的那一张重发，
+        // 其余历史图片照常携带。点名的不是历史图片（本轮刚选的）时不摘，照旧报错让用户重选。
+        if (imageSkips < IMAGE_SKIP_LIMIT && !receivedContent) {
+          const target = resolveRejectedFile(error, locations)
+          if (target && !target.isCurrent && !skippedFiles.has(target.fileId)) {
+            skippedFiles.add(target.fileId)
+            imageSkips += 1
+            notifySkippedFile()
+            // 退避指数封顶，避免连续多张被拒时等上几分钟
+            await waitForRetry(Math.min(imageSkips, 2), controller.signal)
+            if (controller.signal.aborted) {
+              reply = settleReply(reply, 'stopped', Date.now())
+              break
+            }
+            continue
+          }
         }
         if (error instanceof ApiError && error.kind === 'interrupted' && reply.stopReason) {
           // 已收到 message_delta 的结束原因，只是缺了结尾的 message_stop

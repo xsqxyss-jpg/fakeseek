@@ -94,6 +94,37 @@ const PARSE_FAILED_PATTERNS = [
 ]
 
 /**
+ * 服务端拒绝消息里某张图片的内容（格式不受支持、损坏、尺寸超限）：
+ * file_id 本身有效，重传同一份字节也救不回来，只能把这张图从请求里摘掉。
+ * 与 getFileErrorCode 的 file_id 失效区分开。
+ */
+export const isImageRejectedError = (error: unknown): boolean => {
+  if (!(error instanceof ApiError) || error.status !== 400) {
+    return false
+  }
+  return /You have uploaded an (unsupported|invalid) (file|image)/i.test(error.message)
+}
+
+/** 报错点名的位置：请求 messages 数组的下标，以及该消息 content 数组的下标 */
+export type RejectedImagePath = { messageIndex: number; blockIndex: number }
+
+/**
+ * 从报错文案里取出被拒图片的位置。服务端格式为 `messages.<消息下标>.content.<块下标>: ...`，
+ * 拿到位置就能定位到具体哪张图，只摘掉那一张，不动其余历史图片。
+ * 文案里没有位置时返回 null，调用方不做自动跳过。
+ */
+export const getRejectedImagePath = (error: unknown): RejectedImagePath | null => {
+  if (!isImageRejectedError(error)) {
+    return null
+  }
+  const matched = /messages\.(\d+)\.content\.(\d+)/.exec((error as ApiError).message)
+  if (!matched) {
+    return null
+  }
+  return { messageIndex: Number(matched[1]), blockIndex: Number(matched[2]) }
+}
+
+/**
  * 识别 Files API 上传的 400。配额类文案带上限数值，单个 Key 与账号合计（across all sub keys）共用同一提示。
  */
 export const getUploadErrorInfo = (error: unknown): UploadErrorInfo | null => {
