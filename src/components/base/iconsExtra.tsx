@@ -141,3 +141,43 @@ export const GreetingMark = () => (
     <circle cx="34" cy="23.5" r="2.4" fill="var(--dsw-alias-label-primary-foreground)" />
   </svg>
 )
+
+/** 24px ⊕ 描边圈：附件面板入口（对齐官方输入卡右上角 ⊕） */
+export const IconPlusCircleOutline24 = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden {...stroke}>
+    <circle cx="12" cy="12" r="8.6" />
+    <path d="M12 8.2v7.6M8.2 12h7.6" />
+  </svg>
+)
+
+/** 24px ↑ 实心圆发送钮（有文字时替代语音钮） */
+export const IconArrowUp24 = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden fill="currentColor">
+    <path d="M12 4.6a1 1 0 0 1 .72.31l5.2 5.3a1 1 0 0 1-1.44 1.4L13 8.1V19a1 1 0 1 1-2 0V8.1l-3.48 3.5a1 1 0 0 1-1.44-1.4l5.2-5.3a1 1 0 0 1 .72-.3Z" />
+  </svg>
+)
+
+/** 拍照：相机轮廓 */
+export const IconCameraOutline24 = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden {...stroke}>
+    <path d="M3 8.5h3l1.4-2h8.2L17 8.5h4v10H3z" />
+    <circle cx="12" cy="13.2" r="3.2" />
+  </svg>
+)
+
+/** 相册：山与太阳 */
+export const IconImageOutline24 = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden {...stroke}>
+    <rect x="3.2" y="5.2" width="17.6" height="13.6" rx="2.4" />
+    <circle cx="8.6" cy="10" r="1.6" />
+    <path d="M4 16.4l4.6-4.2 3.4 3 2.6-2.2 5.4 4.6" />
+  </svg>
+)
+
+/** 文件：回形针 / 文档轮廓 */
+export const IconFileOutline24 = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden {...stroke}>
+    <path d="M14 3.2H7a2 2 0 0 0-2 2v13.6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.2z" />
+    <path d="M14 3.2v5h5" />
+  </svg>
+)

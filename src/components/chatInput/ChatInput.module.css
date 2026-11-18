@@ -849,3 +849,102 @@
 :global([data-app-wallpaper]:not([data-wp-glass-light])) .wrapper {
   background: rgba(20, 24, 34, 0.55) !important;
 }
+
+/* ---------- 官方 ⊕ 附件面板：拍照 / 相册 / 文件 三卡片 ---------- */
+.attachPanel {
+  box-sizing: border-box;
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 20px;
+  background-color: var(--dsw-alias-bg-base);
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.16);
+  animation: attachPanelIn 0.16s ease-out;
+}
+
+.attachPanelRow {
+  display: flex;
+  gap: 8px;
+}
+
+.attachCard {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 16px 8px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 16px;
+  background-color: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 0.16s ease;
+}
+
+.attachCard:active {
+  background-color: var(--dsw-alias-interactive-bg-hover);
+}
+
+.attachCardIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dsw-alias-label-primary);
+}
+
+.attachCardLabel {
+  font-size: 13px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.attachButtonOpen {
+  color: var(--dsw-alias-brand-text);
+}
+
+@keyframes attachPanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* 有文字时的发送钮：实心圆 + 白箭头 */
+.sendButtonDisabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* 壁纸模式：附件面板与卡片跟随玻璃明暗 */
+:global([data-app-wallpaper][data-wp-glass-light]) .attachPanel {
+  background-color: rgba(255, 255, 255, 0.94);
+}
+
+:global([data-app-wallpaper]:not([data-wp-glass-light])) .attachPanel {
+  background-color: rgba(20, 24, 34, 0.92);
+  backdrop-filter: blur(16px);
+}
+
+:global([data-app-wallpaper][data-wp-glass-light]) .attachCard {
+  border-color: rgba(17, 24, 39, 0.12);
+  color: rgba(17, 24, 39, 0.88);
+}
+
+:global([data-app-wallpaper][data-wp-glass-light]) .attachCardIcon,
+:global([data-app-wallpaper][data-wp-glass-light]) .attachCardLabel {
+  color: rgba(17, 24, 39, 0.88);
+}
+
+:global([data-app-wallpaper]:not([data-wp-glass-light])) .attachCard {
+  border-color: rgba(248, 250, 252, 0.2);
+  color: rgba(248, 250, 252, 0.92);
+}
+
+:global([data-app-wallpaper]:not([data-wp-glass-light])) .attachCardIcon,
+:global([data-app-wallpaper]:not([data-wp-glass-light])) .attachCardLabel {
+  color: rgba(248, 250, 252, 0.92);
+}

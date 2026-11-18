@@ -5,7 +5,7 @@ import {
   IconStopFill16,
   IconThinkOutline14,
 } from '../base/icons.js'
-import { IconAttachCircleOutline24, IconMoreCircleOutline24 } from '../base/iconsExtra.js'
+import { IconPlusCircleOutline24, IconArrowUp24, IconCameraOutline24, IconImageOutline24, IconFileOutline24 } from '../base/iconsExtra.js'
 import { setModel, setSearch, setThinking, useSettings, getWallpaperTextColor } from '../../services/settings.js'
 import { hitRate, useUsage } from '../../services/chat/usage.js'
 import { BUILTIN_MODELS, cachedModels, fetchModels, type ModelOption } from '../../services/api/models.js'
@@ -32,6 +32,7 @@ import { useVoiceInput } from './useVoiceInput.js'
 import { VoiceButton } from './VoiceButton.js'
 import { Spectrum } from './Spectrum.js'
 import { useTranslate } from '../../i18n/index.js'
+import { closeMorePanel, useMorePanel } from './morePanelState.js'
 import styles from './ChatInput.module.css'
 
 /** 输入框：自适应高度的文本框 + 文件 + 深度思考与智能搜索开关 + 语音输入 + 发送 / 停止 */
@@ -63,10 +64,13 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   const isMobile = useIsMobile()
   const search = useSettings((state) => state.search)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const togglesRef = useRef<HTMLDivElement>(null)
-  /** 「更多」面板展开状态：模型切换与缓存命中率都在这一层里 */
-  const [moreOpen, setMoreOpen] = useState(false)
+  /** 「更多」面板展开状态由顶栏按钮控制，这里只读它决定是否在输入卡上方渲染面板 */
+  const morePanelOpen = useMorePanel((state) => state.open)
+  /** ⊕ 附件面板展开状态（官方行为：拍照 / 相册 / 文件三选） */
+  const [attachOpen, setAttachOpen] = useState(false)
 
   useLayoutEffect(() => {
     const toggles = togglesRef.current
@@ -145,8 +149,10 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   // 移动端录音时用频谱替代输入框内容
   const recording = voice.status === 'recording'
 
-  // 排队、上传中或上传失败的附件都留在输入框，全部上传成功后才能发送（发送走键盘回车，官方无发送钮）
+  // 排队、上传中或上传失败的附件都留在输入框，全部上传成功后才能发送
   const canSend = !importingHistory && !streaming && voice.status === 'idle' && draftReady
+  /** 有文字或有附件时，语音钮换成长按发送钮（官方行为） */
+  const hasText = text.trim().length > 0 || attachments.length > 0
 
   const send = () => {
     if (!canSend) {
@@ -249,10 +255,12 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
           </Tooltip>
         </div>
         <div className={styles.right}>
+          {/* 官方布局：⊕ 在前、语音/发送在后，两枚贴右对齐 */}
           <button
             type="button"
-            className={styles.attachButton}
+            className={clsx(styles.attachButton, attachOpen && styles.attachButtonOpen)}
             aria-label={t('uploadFile')}
+            aria-expanded={attachOpen}
             disabled={importingHistory}
             onClick={() => {
               // 附件走官方 Files API，必须先有 Key；没有就提示原因，不闷头跳设置。
@@ -260,10 +268,10 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
                 showToast({ key: 'attachNeedsKey' })
                 return
               }
-              fileInputRef.current?.click()
+              setAttachOpen(!attachOpen)
             }}
           >
-            <IconAttachCircleOutline24 />
+            <IconPlusCircleOutline24 />
           </button>
           <input
             ref={fileInputRef}
@@ -274,19 +282,19 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
             onChange={(event) => {
               acceptFiles(Array.from(event.target.files ?? []))
               event.target.value = ''
+              setAttachOpen(false)
             }}
           />
-          <VoiceButton
-            status={voice.status}
-            disabled={!voice.available}
-            seconds={voice.seconds}
-            onClick={() => {
-              if (
-                voice.status !== 'idle' ||
-                (!useChatStore.getState().importingHistory && ensureApiKey())
-              ) {
-                void voice.toggle()
-              }
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            hidden
+            onChange={(event) => {
+              acceptFiles(Array.from(event.target.files ?? []))
+              event.target.value = ''
+              setAttachOpen(false)
             }}
           />
           {streaming && sessionId ? (
@@ -301,26 +309,102 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
             >
               <IconStopFill16 />
             </button>
-          ) : (
-            // 官方输入卡没有发送钮（靠键盘回车发送）；此处给「更多」：模型切换 + 缓存命中率
+          ) : hasText ? (
             <button
               type="button"
-              className={clsx(styles.moreButton, moreOpen && styles.moreButtonOpen)}
-              aria-label={t('moreOptions')}
-              aria-expanded={moreOpen}
-              onClick={() => setMoreOpen(!moreOpen)}
+              className={clsx(styles.sendButton, !canSend && styles.sendButtonDisabled)}
+              aria-label={t('send')}
+              disabled={!canSend}
+              onClick={send}
             >
-              <IconMoreCircleOutline24 />
+              <IconArrowUp24 />
             </button>
+          ) : (
+            <VoiceButton
+              status={voice.status}
+              disabled={!voice.available}
+              seconds={voice.seconds}
+              onClick={() => {
+                if (
+                  voice.status !== 'idle' ||
+                  (!useChatStore.getState().importingHistory && ensureApiKey())
+                ) {
+                  void voice.toggle()
+                }
+              }}
+            />
           )}
         </div>
       </div>
-      {moreOpen && !streaming ? (
+      {morePanelOpen && !streaming ? (
         <MorePanel
-          onClose={() => setMoreOpen(false)}
+          onClose={closeMorePanel}
+        />
+      ) : null}
+      {attachOpen && !streaming ? (
+        <AttachPanel
+          onCamera={() => cameraInputRef.current?.click()}
+          onGallery={() => {
+            if (fileInputRef.current) {
+              fileInputRef.current.accept = 'image/*'
+              fileInputRef.current.click()
+              // 提示器选择后还原完整接受列表
+              setTimeout(() => {
+                if (fileInputRef.current) fileInputRef.current.accept = ACCEPT
+              }, 60000)
+            }
+          }}
+          onFile={() => fileInputRef.current?.click()}
+          onClose={() => setAttachOpen(false)}
         />
       ) : null}
       {dragging ? <DragMask /> : null}
+    </div>
+  )
+}
+
+/** 官方 ⊕ 面板：拍照 / 相册 / 文件 三入口，点卡片后收起并触发对应选择器 */
+const AttachPanel = ({
+  onCamera,
+  onGallery,
+  onFile,
+  onClose,
+}: {
+  onCamera: () => void
+  onGallery: () => void
+  onFile: () => void
+  onClose: () => void
+}) => {
+  const t = useTranslate()
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+  return (
+    <div className={styles.attachPanel}>
+      <div className={styles.attachPanelRow}>
+        <button type="button" className={styles.attachCard} onClick={onCamera}>
+          <span className={styles.attachCardIcon}>
+            <IconCameraOutline24 />
+          </span>
+          <span className={styles.attachCardLabel}>{t('attachCamera')}</span>
+        </button>
+        <button type="button" className={styles.attachCard} onClick={onGallery}>
+          <span className={styles.attachCardIcon}>
+            <IconImageOutline24 />
+          </span>
+          <span className={styles.attachCardLabel}>{t('attachGallery')}</span>
+        </button>
+        <button type="button" className={styles.attachCard} onClick={onFile}>
+          <span className={styles.attachCardIcon}>
+            <IconFileOutline24 />
+          </span>
+          <span className={styles.attachCardLabel}>{t('attachFile')}</span>
+        </button>
+      </div>
     </div>
   )
 }
