@@ -1,9 +1,13 @@
 :root {
   --message-list-max-width: 840px;
   --message-list-padding-horizontal: 44px;
-  /* 系统栏高度：原生层覆盖为真实值；浏览器回落 0 */
+  /* 系统栏高度：原生层注入 --safe-top / --nav-bottom / --ime-height 三个原始值，
+     --safe-bottom 改由 viewport.ts 计算（键盘弹起时只让开一次，避免扣两遍）。
+     浏览器环境无原生注入，全部回落 0 */
   --safe-top: 0px;
   --safe-bottom: 0px;
+  --nav-bottom: 0px;
+  --ime-height: 0px;
 }
 
 @media (max-width: 1023px) {

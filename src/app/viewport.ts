@@ -46,6 +46,35 @@ export const usePreventPageScroll = (enabled: boolean) => {
 export const useMobileViewport = (enabled: boolean) => {
   const frameRef = useRef<HTMLDivElement>(null)
 
+  // --safe-bottom 只有一个真实来源：底部要额外让开多少。
+  // 键盘没有压缩视觉视口（部分机型 adjustPan）时才需要让开键盘高度；
+  // 视觉视口已经缩小（adjustResize）时再让一次就会把内容区扣两遍、输入卡被顶到顶上。
+  useEffect(() => {
+    if (!enabled) {
+      return
+    }
+    const root = document.documentElement
+    const sync = () => {
+      const nav = parseFloat(getComputedStyle(root).getPropertyValue('--nav-bottom')) || 0
+      const ime = parseFloat(getComputedStyle(root).getPropertyValue('--ime-height')) || 0
+      const viewport = window.visualViewport
+      // 布局视口高度 - 视觉视口高度 = 键盘实际吃掉的像素
+      const eaten = viewport ? Math.max(0, window.innerHeight - viewport.height) : 0
+      // 键盘没吃满的那部分才需要补；键盘本身已经把导航条盖住了，不能再叠加导航条高度
+      const bottom = ime > 0 ? Math.max(0, ime - eaten) : nav
+      root.style.setProperty('--safe-bottom', `${bottom}px`)
+    }
+    sync()
+    const viewport = window.visualViewport
+    viewport?.addEventListener('resize', sync)
+    window.addEventListener('resize', sync)
+    return () => {
+      viewport?.removeEventListener('resize', sync)
+      window.removeEventListener('resize', sync)
+      root.style.removeProperty('--safe-bottom')
+    }
+  }, [enabled])
+
   useLayoutEffect(() => {
     const frame = frameRef.current
     if (!enabled || !frame) {

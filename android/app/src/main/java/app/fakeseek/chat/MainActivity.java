@@ -45,16 +45,13 @@ public class MainActivity extends BridgeActivity {
             Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
             float density = getResources().getDisplayMetrics().density;
-            // 键盘弹起时底部让开量取「导航条」与「键盘」较高者——CSS 只有 --safe-bottom 一个消费口，
-            // 之前只传导航条高度、键盘高度塞在没人用的 --ime-height 里，输入框就被键盘盖住了。
-            int bottomInset = Math.max(bars.bottom, ime.bottom);
+            // --safe-bottom 交给网页算（viewport.ts）：它知道视觉视口有没有真的缩小，
+            // 只让开一次；这里只提供导航条与键盘两个原始高度。
             final String js = String.format(
                     "document.documentElement.style.setProperty('--safe-top','%dpx');"
-                            + "document.documentElement.style.setProperty('--safe-bottom','%dpx');"
                             + "document.documentElement.style.setProperty('--ime-height','%dpx');"
                             + "document.documentElement.style.setProperty('--nav-bottom','%dpx');",
                     Math.round(bars.top / density),
-                    Math.round(bottomInset / density),
                     Math.round(ime.bottom / density),
                     Math.round(bars.bottom / density));
             webView.post(() -> webView.evaluateJavascript(js, null));
