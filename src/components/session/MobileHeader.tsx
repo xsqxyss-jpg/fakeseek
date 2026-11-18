@@ -15,10 +15,11 @@ import { closeMorePanel, toggleMorePanel, useMorePanel } from '../chatInput/more
 import { openMobileSider } from '../sider/mobileSiderState.js'
 import styles from './MobileHeader.module.css'
 
-/** 移动端顶栏（官方 App 风格）：左菜单；标题居中；右侧 朗读静音 + 更多(模型/用量) + 新建会话。 */
+/** 移动端顶栏：左 菜单 + 更多(模型/用量)；标题左对齐；右侧 朗读静音 + 新建会话。 */
 export const MobileHeader = ({ title }: { title?: string }) => {
   const t = useTranslate()
   const voiceMuted = useSettings((state) => state.voiceMuted)
+  const moreOpen = useMorePanel((state) => state.open)
   const toggleMute = () => {
     const next = !voiceMuted
     if (next) {
@@ -36,6 +37,18 @@ export const MobileHeader = ({ title }: { title?: string }) => {
         aria-label={t('expandSiderbarButton')}
         onClick={openMobileSider}
       />
+      {/* 「更多」放在从左数第一个图标旁边（菜单右侧），标题起点让开它 */}
+      <IconButton
+        size="xl"
+        tone="primary"
+        icon={<IconMoreCircleOutline24 />}
+        aria-label={t('moreOptions')}
+        aria-expanded={moreOpen}
+        onClick={() => {
+          closeMorePanel()
+          toggleMorePanel()
+        }}
+      />
       {title === undefined ? (
         <div className={styles.spacer} />
       ) : (
@@ -47,18 +60,6 @@ export const MobileHeader = ({ title }: { title?: string }) => {
         icon={voiceMuted ? <IconSpeakerMuteOutline20 /> : <IconSpeakerOutline20 />}
         aria-label={t(voiceMuted ? 'voiceMuteOn' : 'voiceMuteOff')}
         onClick={toggleMute}
-      />
-      {/* 「更多」（模型/用量）挪进右上角按钮组：不再钉在屏幕几何中心压标题 */}
-      <IconButton
-        size="xl"
-        tone="primary"
-        icon={<IconMoreCircleOutline24 />}
-        aria-label={t('moreOptions')}
-        aria-expanded={useMorePanel((state) => state.open)}
-        onClick={() => {
-          closeMorePanel()
-          toggleMorePanel()
-        }}
       />
       <IconButton
         size="xl"

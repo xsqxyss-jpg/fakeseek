@@ -1,0 +1,7 @@
+{
+  "version": "1.0.7",
+  "versionCode": 8,
+  "url": "https://github.com/xsqxyss-jpg/fakeseek/releases/download/v1.0.7/fakeseek-v1.0.7.apk",
+  "notes": "界面修复：1)「更多」挪进右上角按钮组，不再压住标题。2) 模型面板/附件面板点空白即可收起。3) 键盘弹出后自动把输入框滚进可视区，修复有时键盘弹不出/输入框被挡。4)「选择对话」整页限宽到侧栏列，关闭按钮、置顶/删除分隔线不再画进聊天区，顶部留白对齐官方。",
+  "publishedAt": "2026-11-19"
+}
