@@ -26,6 +26,7 @@ import {
   importHistory,
 } from '../../services/chat/backup.js'
 import { useChatStore } from '../../services/chat/store.js'
+import { isQuotaError } from '../../services/chat/db.js'
 import { regionCodes, getRegionName, provinces } from '../../services/location.js'
 import {
   CONTEXT_ROUNDS_OPTIONS,
@@ -174,7 +175,10 @@ const SettingsContent = () => {
           )}
         </div>
       </Modal>
-      {historyImport.file ? <ImportConfirm historyImport={historyImport} /> : null}
+      {/* 确认弹窗：导入进行中（busy 且有进度）也保留渲染，让进度条有地方显示 */}
+      {historyImport.file || historyImport.busy ? (
+        <ImportConfirm historyImport={historyImport} />
+      ) : null}
       {historyDelete.opened ? <DeleteAllConfirm historyDelete={historyDelete} /> : null}
     </>
   )
@@ -560,30 +564,47 @@ const TtsVoiceSetting = () => {
   )
 }
 
-/** 覆盖导入的二次确认，叠在设置弹窗上 */
+/** 覆盖导入的二次确认 + 导入中的进度展示（同一个弹窗，确认后变成进度态） */
 const ImportConfirm = ({
   historyImport,
 }: {
   historyImport: ReturnType<typeof useHistoryImport>
 }) => {
   const t = useTranslate()
+  const importing = historyImport.busy && historyImport.progress !== null
+  const percent = Math.min(99, Math.max(1, Math.round((historyImport.progress ?? 0) * 100)))
   return (
     <Modal
       title={t('historyImportConfirmTitle')}
       className={styles.importConfirm}
-      onClose={historyImport.cancel}
+      onClose={importing ? undefined : historyImport.cancel}
       footer={
-        <>
-          <Button variant="outlined" size="m" autoFocus onClick={historyImport.cancel}>
-            {t('cancel')}
-          </Button>
-          <Button variant="dangerOutlined" size="m" onClick={() => void historyImport.confirm()}>
-            {t('historyImportConfirm')}
-          </Button>
-        </>
+        importing ? (
+          <div className={styles.importProgressRow} aria-busy="true">
+            <progress
+              className={styles.importProgressBar}
+              value={historyImport.progress ?? 0}
+              max={1}
+            />
+            <span className={styles.importProgressText}>
+              {t('historyImportingProgress', { percent: String(percent) })}
+            </span>
+          </div>
+        ) : (
+          <>
+            <Button variant="outlined" size="m" autoFocus onClick={historyImport.cancel}>
+              {t('cancel')}
+            </Button>
+            <Button variant="dangerOutlined" size="m" onClick={() => void historyImport.confirm()}>
+              {t('historyImportConfirm')}
+            </Button>
+          </>
+        )
       }
     >
-      <div className={styles.importConfirmText}>{t('historyImportConfirmDescription')}</div>
+      <div className={styles.importConfirmText}>
+        {importing ? t('historyImporting') : t('historyImportConfirmDescription')}
+      </div>
     </Modal>
   )
 }
@@ -717,6 +738,9 @@ const useHistoryImport = () => {
   const [file, setFile] = useState<File | null>(null)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<Status>(null)
+  const [progress, setProgress] = useState<number | null>(null)
+  /** 导入中的 File 引用要保留到进度结束，避免中途被 GC 影响 slice 读取 */
+  const activeFile = useRef<File | null>(null)
   const importing = useRef(false)
 
   const confirm = async () => {
@@ -724,25 +748,34 @@ const useHistoryImport = () => {
       return
     }
     importing.current = true
-    setFile(null)
+    activeFile.current = file
     setBusy(true)
     setStatus(null)
+    // 首帧就给一个非零起点，避免大文件解析 manifest 阶段进度条停在 0
+    setProgress(0.01)
     try {
-      const count = await importHistory(file)
+      const count = await importHistory(file, (value) => setProgress(value))
       setStatus(
         count === 0
           ? { key: 'historyImportedNone' }
           : { key: count === 1 ? 'historyImportedOne' : 'historyImported', params: { count } }
       )
-    } catch {
-      setStatus({ key: 'historyImportFailed', error: true })
+    } catch (error) {
+      // 磁盘满/配额超单独提示：这种失败重试也没用，得先清空间
+      setStatus({
+        key: isQuotaError(error) ? 'historyImportNoSpace' : 'historyImportFailed',
+        error: true,
+      })
     } finally {
       importing.current = false
+      activeFile.current = null
       setBusy(false)
+      setProgress(null)
+      setFile(null)
     }
   }
 
-  return { file, busy, status, select: setFile, cancel: () => setFile(null), confirm }
+  return { file, busy, status, progress, select: setFile, cancel: () => setFile(null), confirm }
 }
 
 /** 导入 = 新增合并：把文件中的会话追加到本地列表，同 id 去重。 */

@@ -247,6 +247,10 @@ export const en = {
   historyImportedNone: 'All chats in the file already exist locally. Nothing added.',
   historyImportFailed:
     'File import failed. The file format may be invalid, or the ZIP file may use an older chat export format. Please export your chat history from DeepSeek again and retry the import.',
+  historyImportNoSpace:
+    'Not enough storage space on this device. The import was interrupted. Free up space and try again.',
+  historyImporting: 'Importing. Keep this page open and stay on this screen until it finishes…',
+  historyImportingProgress: 'Importing {percent}%…',
   historyExportFailed: 'Export failed: {message}',
   exportAllLabel: 'Export all chats',
   historyExportDescription:

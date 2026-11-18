@@ -43,12 +43,16 @@ export const exportHistory = (): Promise<{ name: string; blob: Blob }> =>
  * 确认导入后调用：先检查 ZIP 格式与版本，校验失败时保留正在生成的回答；
  * 通过后从 ZIP 流式写入暂存，成功才把新会话与图片原件合并进现有记录（同 id 去重，不覆盖本地）。
  * 返回本次新增的会话数；重复导入同一文件时为 0。
+ * onProgress 可选：0-1 的文件字节进度，UI 据此画进度条。
  */
-export const importHistory = (file: File): Promise<number> =>
+export const importHistory = (
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<number> =>
   enqueueBackup(async () => {
     const { checkArchiveFormat, importArchive } = await import('./history/importArchive.js')
     await checkArchiveFormat(file)
-    return mergeHistory(() => importArchive(file))
+    return mergeHistory(() => importArchive(file, onProgress))
   })
 
 /** 确认删除后调用：以空历史原子替换全部本地会话与附件，保留 API Key 和其他设置。 */

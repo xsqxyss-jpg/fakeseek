@@ -232,6 +232,10 @@ export type ArchiveEntry = {
   path: string
   size: number
   stream: AsyncIterable<Uint8Array>
+  /** 该条目解压数据全部消费后的文件字节偏移；用于进度计算（当前偏移 / 文件总大小） */
+  endOffset: number
+  /** 整个文件的字节大小 */
+  totalSize: number
 }
 
 /**
@@ -291,7 +295,13 @@ export async function* readArchive(file: File): AsyncGenerator<ArchiveEntry> {
       }
       completed = true
     }
-    yield { path: entry.path, size: entry.size, stream: stream() }
+    yield {
+      path: entry.path,
+      size: entry.size,
+      stream: stream(),
+      endOffset: boundary,
+      totalSize: file.size,
+    }
     if (!completed) {
       invalid()
     }

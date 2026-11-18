@@ -422,6 +422,44 @@
   color: var(--dsw-alias-label-primary);
 }
 
+/* 导入进度：原生 progress 元素按主题着色，文字随行 */
+.importProgressRow {
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  display: flex;
+}
+
+.importProgressBar {
+  flex: 1;
+  min-width: 0;
+  height: 6px;
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  border-radius: 3px;
+  overflow: hidden;
+  background-color: var(--dsw-alias-border-l2);
+}
+
+.importProgressBar::-webkit-progress-bar {
+  background-color: var(--dsw-alias-border-l2);
+  border-radius: 3px;
+}
+
+.importProgressBar::-webkit-progress-value {
+  background-color: var(--dsw-alias-brand-primary);
+  border-radius: 3px;
+}
+
+.importProgressText {
+  flex-shrink: 0;
+  min-width: 72px;
+  text-align: right;
+  font-size: 13px;
+  color: var(--dsw-alias-label-secondary);
+}
+
 .deleteConfirm {
   max-height: calc(100dvh - 32px);
   overflow-y: auto;

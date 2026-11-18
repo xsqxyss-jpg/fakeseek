@@ -77,8 +77,12 @@ export const checkArchiveFormat = async (file: File): Promise<void> => {
  * 也支持会话与图片交错排列、index 位于末尾的条目顺序。
  * 会话读完立即暂存，只保留图片路径映射；图片全部读完后逐会话回填 MIME，不改变图片身份。
  * 写入导入暂存存储；调用方负责先清空暂存，成功后替换正式数据，失败时清理暂存。
+ * onProgress 可选：每处理完一个条目上报 0-1 的文件字节进度，UI 据此画进度条。
  */
-export const importArchive = async (file: File): Promise<void> => {
+export const importArchive = async (
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<void> => {
   if (!(await isZipFile(file))) {
     fail('backupUnrecognized')
   }
@@ -137,6 +141,10 @@ export const importArchive = async (file: File): Promise<void> => {
         await (id === undefined ? skipEntry(entry) : saveImage(entry, id))
       } else {
         fail('backupIncomplete')
+      }
+      // 每处理完一个条目上报一次字节进度；条目消费完后 endOffset 才有效
+      if (onProgress) {
+        onProgress(Math.min(1, entry.endOffset / entry.totalSize))
       }
     }
   } catch (error) {

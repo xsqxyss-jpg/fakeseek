@@ -240,6 +240,9 @@ export const zh = {
   historyImportedNone: '文件中的对话本地都已存在，没有新增',
   historyImportFailed:
     '文件导入失败，可能是文件格式错误或使用了旧版的对话导出 ZIP 文件，请前往 DeepSeek 重新导出历史对话文件后再次导入。',
+  historyImportNoSpace: '手机存储空间不足，导入中断。请清理空间后重试。',
+  historyImporting: '正在导入，请保持页面打开，不要离开或锁屏操作其他 App…',
+  historyImportingProgress: '导入中 {percent}%…',
   historyExportFailed: '导出失败：{message}',
   exportAllLabel: '导出所有历史对话',
   historyExportDescription:

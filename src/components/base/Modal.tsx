@@ -30,7 +30,8 @@ export const Modal = ({
   mainClassName?: string
   /** 标题容器的 class（如设置页需要撑满整行做居中标题） */
   titleClassName?: string
-  onClose: () => void
+  /** 传 undefined 时锁定：Esc / 点遮罩 / 关闭按钮全部失效，用于导入进度等不可中断态 */
+  onClose?: () => void
 }) => {
   const t = useTranslate()
   const titleId = useId()
@@ -41,7 +42,7 @@ export const Modal = ({
     openModals.push(token)
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && openModals.at(-1) === token) {
-        onCloseRef.current()
+        onCloseRef.current?.()
       }
     }
     document.addEventListener('keydown', onKeyDown)
@@ -54,7 +55,7 @@ export const Modal = ({
   return createPortal(
     <div
       className={styles.overlay}
-      onMouseDown={(event) => event.target === event.currentTarget && onClose()}
+      onMouseDown={(event) => event.target === event.currentTarget && onClose?.()}
     >
       <div
         className={clsx(styles.content, className)}
@@ -66,7 +67,7 @@ export const Modal = ({
           <div id={titleId} className={clsx(styles.title, titleClassName)}>
             {title}
           </div>
-          {closable ? (
+          {closable && onClose ? (
             <IconButton
               className={styles.close}
               tone="primary"

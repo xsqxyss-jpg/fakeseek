@@ -278,3 +278,20 @@ export const reportStorageError = (action: string) => (error: unknown) => {
   // eslint-disable-next-line no-console
   console.error(`[storage] ${action} failed`, error)
 }
+
+/**
+ * 识别「手机存储空间不足」类失败：IndexedDB 配额超限在不同引擎下报法不一，
+ * Chrome 系抛 DOMException name=QuotaExceededError，旧引擎走 code=22。
+ */
+export const isQuotaError = (error: unknown): boolean => {
+  if (!(error instanceof Error)) {
+    return false
+  }
+  const name = (error as DOMException).name ?? ''
+  return (
+    name === 'QuotaExceededError' ||
+    name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+    (error as DOMException).code === 22 ||
+    /quota|storage full|no space/i.test(error.message)
+  )
+}

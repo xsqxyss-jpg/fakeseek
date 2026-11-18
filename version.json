@@ -1,7 +1,7 @@
 {
-  "version": "1.0.7",
-  "versionCode": 8,
-  "url": "https://github.com/xsqxyss-jpg/fakeseek/releases/download/v1.0.7/fakeseek-v1.0.7.apk",
-  "notes": "界面修复：1)「更多」按钮挪到顶栏左侧第二个位置（菜单旁），不再压住标题也不挤在右侧两按钮中间。2) 模型面板/附件面板点空白即可收起。3) 键盘弹出后自动把输入框滚进可视区。4)「选择对话」页限宽到侧栏列，关闭按钮、置顶/删除分隔线对齐官方。",
+  "version": "1.0.8",
+  "versionCode": 9,
+  "url": "https://github.com/xsqxyss-jpg/fakeseek/releases/download/v1.0.8/fakeseek-v1.0.8.apk",
+  "notes": "导入历史体验修复：确认后显示导入进度条（按文件字节进度，大文件不再像没反应）；磁盘空间不足时单独提示；导入期间锁定弹窗防误触。",
   "publishedAt": "2026-11-19"
 }
