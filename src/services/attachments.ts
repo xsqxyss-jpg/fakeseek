@@ -4,6 +4,7 @@ import { uploadFile } from './api/client.js'
 import { classifyApiError, getUploadErrorInfo, isRetryableApiError } from './api/errors.js'
 import type { FilePurpose } from './api/types.js'
 import { ACCEPT_FILE_EXTS } from './uploadExts.js'
+import { normalizeImage } from './imageTranscode.js'
 
 /** 允许上传的扩展名，按扩展名白名单过滤，清单见 uploadExts.ts */
 export const ACCEPTED_EXTS = ACCEPT_FILE_EXTS
@@ -131,7 +132,10 @@ const enqueueUpload = (
         return
       }
       try {
-        const body = file instanceof File ? file : new File([file], name, { type: file.type })
+        const original = file instanceof File ? file : new File([file], name, { type: file.type })
+        // 服务端只认 JPEG / PNG / GIF / WebP：不受支持的格式与超限大图在这里统一转码
+        const normalized = isImage ? await normalizeImage(original) : original
+        const body = new File([normalized], name, { type: normalized.type })
         resolve((await uploadFile(apiKey, body, getUploadPurpose(name, isImage), signal)).id)
       } catch (error) {
         reject(error)
