@@ -337,26 +337,31 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
         </div>
       </div>
       {morePanelOpen && !streaming ? (
-        <MorePanel
-          onClose={closeMorePanel}
-        />
+        <>
+          {/* 点空白收起：透明遮罩盖住面板以外区域 */}
+          <div className={styles.panelMask} onClick={closeMorePanel} />
+          <MorePanel onClose={closeMorePanel} />
+        </>
       ) : null}
       {attachOpen && !streaming ? (
-        <AttachPanel
-          onCamera={() => cameraInputRef.current?.click()}
-          onGallery={() => {
-            if (fileInputRef.current) {
-              fileInputRef.current.accept = 'image/*'
-              fileInputRef.current.click()
-              // 提示器选择后还原完整接受列表
-              setTimeout(() => {
-                if (fileInputRef.current) fileInputRef.current.accept = ACCEPT
-              }, 60000)
-            }
-          }}
-          onFile={() => fileInputRef.current?.click()}
-          onClose={() => setAttachOpen(false)}
-        />
+        <>
+          <div className={styles.panelMask} onClick={() => setAttachOpen(false)} />
+          <AttachPanel
+            onCamera={() => cameraInputRef.current?.click()}
+            onGallery={() => {
+              if (fileInputRef.current) {
+                fileInputRef.current.accept = 'image/*'
+                fileInputRef.current.click()
+                // 提示器选择后还原完整接受列表
+                setTimeout(() => {
+                  if (fileInputRef.current) fileInputRef.current.accept = ACCEPT
+                }, 60000)
+              }
+            }}
+            onFile={() => fileInputRef.current?.click()}
+            onClose={() => setAttachOpen(false)}
+          />
+        </>
       ) : null}
       {dragging ? <DragMask /> : null}
     </div>

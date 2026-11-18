@@ -472,6 +472,12 @@
   font-size: 15px;
   cursor: pointer;
 
+  /* 官方：两个操作按钮中间有一条竖分隔线 */
+  &:first-child {
+    border-right: 1px solid var(--dsw-alias-border-l2-darkmode-thin);
+    border-radius: 12px 0 0 12px;
+  }
+
   &:hover {
     background-color: var(--dsw-alias-interactive-bg-hover);
   }
@@ -499,21 +505,25 @@
   gap: 4px;
 }
 
-/* ---------- 「选择对话」独立整页：fixed 铺满整个视口，让开状态栏/导航条 ---------- */
+/* ---------- 「选择对话」独立整页：盖在侧栏内容列上（列宽 = min(330px, 85vw)），不是全屏。
+   之前用 fixed inset:0 铺满视口，关闭按钮和底部「置顶/删除」都被 flex 推到屏幕右缘，
+   视觉上跑进了右侧聊天卡片区；限制列宽后与官方一致。 ---------- */
 .selectPage {
   position: fixed;
-  inset: 0;
+  inset: 0 auto 0 0;
   z-index: 20;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  padding-top: var(--safe-top, 0px);
+  width: min(330px, 85vw);
+  padding-top: calc(var(--safe-top, 0px) + 8px);
   padding-bottom: var(--safe-bottom, 0px);
   /* 直接沿用侧栏壁纸整屏铺满，字色标记也复用侧栏的 */
   background-color: var(--dsw-alias-bg-base);
   background-image: var(--sider-wallpaper, none);
   background-size: cover;
   background-position: center;
+  border-right: 1px solid var(--dsw-alias-border-l2-darkmode-thin);
 }
 
 /* 选择对话页字色标记仍由 App.tsx 打（data-wp-text-light-sider 供字色规则用），但不再加遮罩 */
@@ -523,7 +533,8 @@
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
-  padding: 14px 14px 6px;
+  /* 官方：标题上方有一段留白，不贴着状态栏 */
+  padding: 28px 14px 10px;
 }
 
 .selectTitle {

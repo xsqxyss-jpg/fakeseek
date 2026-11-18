@@ -455,6 +455,19 @@
   border-top: 1px solid var(--dsw-alias-border-l2-darkmode-thin);
   background-color: var(--dsw-alias-bg-base);
   cursor: default;
+  /* 盖在遮罩之上 */
+  position: relative;
+  z-index: 2;
+}
+
+/* 面板展开时的透明遮罩：占满输入卡以外的整个视口，点空白即收起 */
+.panelMask {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  background: transparent;
+  border: none;
+  padding: 0;
 }
 
 .moreSection {

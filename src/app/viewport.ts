@@ -127,6 +127,11 @@ export const useMobileViewport = (enabled: boolean) => {
     const onFocusIn = () => {
       if (document.activeElement?.matches(inputSelector)) {
         schedule()
+        // 键盘弹起后把输入框滚进可视区：部分机型 WebView 不自动滚，
+        // 表现为「键盘弹出来了但输入框还在屏幕外/键盘底下」，再点一次才弹。
+        setTimeout(() => {
+          document.activeElement?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+        }, 350)
       }
     }
 
