@@ -41,6 +41,25 @@
   }
 }
 
+@media not all and (min-width: 768px) {
+/* 壁纸设置页：选中胶囊是「控件」不是文本——底色按面板明暗、字按高对比规范：
+   深底白字（黑磨砂面板）用黑磨砂胶囊白描白字；浅底深字面板用浅灰胶囊深字 */
+:global([data-settings-wallpaper]:not([data-wp-text-light-settings])) .trigger {
+  background: rgba(24, 26, 30, 0.72) !important;
+  color: #ffffff !important;
+  border: 1.2px solid rgba(255, 255, 255, 0.35);
+}
+
+:global([data-settings-wallpaper]:not([data-wp-text-light-settings])) .trigger .arrow {
+  color: #ffffff;
+}
+
+:global([data-settings-wallpaper][data-wp-text-light-settings]) .trigger {
+  background: rgba(17, 24, 39, 0.08) !important;
+  color: var(--dsw-alias-label-primary) !important;
+  border: 1px solid rgba(17, 24, 39, 0.12);
+}
+
 .open {
   color: var(--dsw-alias-label-tertiary);
 }
@@ -97,4 +116,5 @@
   &:hover {
     background: var(--dsw-alias-interactive-bg-hover);
   }
+}
 }

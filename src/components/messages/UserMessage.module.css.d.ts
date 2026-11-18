@@ -1,6 +1,8 @@
 declare const styles: {
   readonly "container": string;
   readonly "isFirst": string;
+  readonly "body": string;
+  readonly "content": string;
   readonly "actions": string;
   readonly "files": string;
   readonly "filesWithDocuments": string;
@@ -12,4 +14,3 @@ declare const styles: {
   readonly "editorActions": string;
 };
 export = styles;
-

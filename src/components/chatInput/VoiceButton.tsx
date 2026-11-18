@@ -1,6 +1,7 @@
 import clsx from 'clsx'
 import { useTranslate } from '../../i18n/index.js'
 import { IconMicFill16, IconMicOutline16 } from '../base/icons.js'
+import { IconVoiceCircleOutline24 } from '../base/iconsExtra.js'
 import { Tooltip } from '../base/Tooltip.js'
 import type { VoiceInputStatus } from './useVoiceInput.js'
 import styles from './VoiceButton.module.css'
@@ -69,7 +70,9 @@ export const VoiceButton = ({
           ) : status === 'transcribing' ? (
             <span className={styles.loading} />
           ) : (
-            <IconMicOutline16 />
+            <span className={styles.idleCircle}>
+              <IconVoiceCircleOutline24 />
+            </span>
           )}
         </button>
       </Tooltip>

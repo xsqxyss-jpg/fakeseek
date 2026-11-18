@@ -59,6 +59,47 @@
   user-select: none;
 }
 
+/* 壁纸模式：顶栏完全透明，图标直接落在壁纸上；输入区不再垫渐变 */
+:global([data-app-wallpaper]) .header {
+  background: transparent;
+  backdrop-filter: none;
+}
+
+:global([data-app-wallpaper]) .inputContainer {
+  background: transparent;
+  backdrop-filter: none;
+}
+
+:global([data-app-wallpaper]) .caveat {
+  color: var(--dsw-alias-label-secondary);
+  text-shadow: 0 0 6px var(--dsw-alias-bg-base);
+}
+
+/* 暗壁纸：顶栏图标与标题浅色 */
+:global([data-app-wallpaper-dark]) .header {
+  background: transparent;
+}
+
+:global([data-app-wallpaper-dark]) .header button,
+:global([data-app-wallpaper-dark]) .title {
+  color: rgba(248, 250, 252, 0.95);
+}
+
+:global([data-app-wallpaper-dark]) .inputContainer {
+  background: transparent;
+}
+
+:global([data-app-wallpaper-dark]) .caveat {
+  color: rgba(226, 232, 240, 0.75);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
+
+/* 亮壁纸：顶栏图标与标题深色 */
+[data-app-wallpaper]:not([data-app-wallpaper-dark]) .header button,
+[data-app-wallpaper]:not([data-app-wallpaper-dark]) .title {
+  color: rgba(17, 24, 39, 0.92);
+}
+
 @media not all and (min-width: 768px) {
   .inputContainer {
     position: relative;
@@ -67,4 +108,27 @@
     margin: 0 auto;
     padding-bottom: env(safe-area-inset-bottom);
   }
+}
+
+/* 去掉底部小字后，输入卡直接贴底：留一点安全区余量即可 */
+.inputContainer {
+  padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+}
+
+@media not all and (min-width: 768px) {
+  /* 输入区让开底部导航条 */
+  .inputContainer {
+    padding-bottom: calc(6px + var(--safe-bottom, 0px));
+  }
+}
+
+/* 自定义字色变量优先；标题与顶栏图标跟随会话区设置，自动档回落明暗自动色 */
+:global([data-app-wallpaper]) .header button,
+:global([data-app-wallpaper]) .title {
+  color: var(--wp-chat-text, rgba(17, 24, 39, 0.92)) !important;
+}
+
+:global([data-app-wallpaper-dark]) .header button,
+:global([data-app-wallpaper-dark]) .title {
+  color: var(--wp-chat-text, rgba(248, 250, 252, 0.95)) !important;
 }

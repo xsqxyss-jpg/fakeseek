@@ -1,9 +1,15 @@
+/* 网页铺满整个窗口（沉浸）：系统栏与键盘高度由原生注入成 CSS 变量，
+   各区域自己吃——聊天页顶栏吃状态栏高度（高），侧栏从状态栏下方开始（低）。
+   底部统一让开 --safe-bottom（导航条与键盘取较高者），键盘弹出时输入卡自动抬高。 */
 .frame {
   position: absolute;
   inset: 0;
+  box-sizing: border-box;
   display: flex;
   overflow: hidden;
+  padding-bottom: var(--safe-bottom, 0px);
   background-color: var(--dsw-alias-bg-base);
+  transition: padding-bottom 0.15s ease-out;
 }
 
 .main {
@@ -12,6 +18,25 @@
   flex-direction: column;
   flex: 1;
   min-width: 0;
+}
+
+/* 官方 push 式抽屉：主界面整体右移并压在上层，左侧带圆角与投影；侧栏垫在底层 */
+.pushable {
+  position: relative;
+  z-index: 3;
+  transition:
+    transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+    border-radius 0.28s ease;
+  will-change: transform;
+}
+
+.pushOpen {
+  transform: translateX(min(330px, 85vw));
+  border-radius: 22px 0 0 22px;
+  box-shadow:
+    -6px 0 24px rgba(15, 23, 42, 0.14),
+    -1px 0 3px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
 }
 
 .content {
@@ -59,4 +84,27 @@
     bottom: auto;
     height: var(--app-viewport-height, 100dvh);
   }
+}
+
+/* 壁纸：铺在内容区最底层（侧栏/设置不受影响），头部与输入区改半透明磨砂叠上去 */
+:global([data-app-wallpaper]) .content {
+  background-image: var(--app-wallpaper);
+  background-size: cover;
+  background-position: center;
+}
+
+/* 壁纸激活：全屏 scrim 薄纱压在壁纸上、UI 浮在其上（抄自 dsh-wallpaper-engine）。
+   玻璃面统一用「可读性基色 + floor 混合」配方，不再拍脑袋写透明度。 */
+:global([data-app-wallpaper]) .frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--wp-scrim);
+  pointer-events: none;
+  z-index: 0;
+}
+
+:global([data-app-wallpaper]) .main {
+  position: relative;
+  z-index: 1;
 }

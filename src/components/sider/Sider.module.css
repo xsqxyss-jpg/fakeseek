@@ -113,7 +113,7 @@
   line-height: 18px;
   font-weight: 500;
   color: var(--dsw-alias-label-tertiary);
-  background-color: var(--dsw-specific-sidebar-fill);
+  background-color: transparent;
   user-select: none;
 }
 
@@ -200,48 +200,618 @@
   z-index: 800;
 }
 
+/* 官方 push 式抽屉：主界面整体右移（App 层加 transform），抽屉垫在下面 */
+.pushFrame {
+  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
+}
+
+.pushOpen {
+  transform: translateX(min(330px, 85vw));
+}
+
 .drawerMask {
   position: absolute;
-  inset: 0;
-  z-index: 799;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: min(330px, 85vw);
+  z-index: 5;
+  /* 官方：点聊天页露出的部分收起抽屉，画面本身不压暗 */
+  background-color: transparent;
+
+  [data-ds-dark-theme] & {
+    background-color: rgba(0, 0, 0, 0.12);
+  }
+}
+
+/* 官方：侧栏垫底，顶部从状态栏下方开始（比聊天页低一档）；聊天页顶栏沉浸到状态栏底下 */
+.mobilePanel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  display: flex;
+  /* 壁纸整屏宽：面板本体铺满视口，内容列固定 330px 靠左；
+     聊天页右移后压住壁纸的右半截，与官方「压在下面」的结构一致 */
+  width: 100vw;
+  box-sizing: border-box;
+  padding-top: var(--safe-top, 0px);
+  background-color: var(--dsw-alias-bg-base);
+  overflow: hidden;
 }
 
 .mobile {
-  width: 300px;
-  max-width: calc(100vw - 48px);
+  /* 内容列固定宽：壁纸铺满整屏，列表、搜索、账号行只占左边 330px */
+  width: min(330px, 85vw);
+  flex-shrink: 0;
+  max-width: none;
+  border-radius: 0;
+  border-right: none;
+  background-color: transparent;
+
+  .searchRow {
+    padding: 14px 14px 6px;
+  }
 
   .listWrap {
-    margin-top: 16px;
+    margin-top: 8px;
+    padding: 0 8px;
   }
 
   .sectionHeader {
-    padding: 4px 10px 3px;
+    padding: 6px 10px 4px;
     font-size: 14px;
     line-height: 22px;
+    background-color: transparent;
   }
 
   .bottom {
     height: auto;
-    padding: 12px 0;
+    padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
   }
 
-  .settings {
-    padding: 9px 10px;
+  .account {
+    padding: 8px 6px;
   }
 
-  .settingsIcon {
-    width: auto;
-    height: auto;
-
-    svg {
-      width: 20px;
-      height: 20px;
-    }
+  .accountAvatar {
+    width: 40px;
+    height: 40px;
   }
 
-  .settingsLabel {
-    margin-left: 10px;
+  .accountName {
     font-size: 16px;
-    line-height: 22px;
   }
+}
+
+/* ---------- 官方 App 风格：搜索框 / 纯文字列表 / 底部账号行 ---------- */
+
+.searchRow {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 6px;
+  padding: 12px 0 4px;
+}
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: 8px;
+  box-sizing: border-box;
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 100px;
+  background-color: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-tertiary);
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 14px;
+
+  &::placeholder {
+    color: var(--dsw-alias-label-caption);
+  }
+
+  &::-webkit-search-cancel-button {
+    cursor: pointer;
+  }
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* 分组标题右侧图标：官方就是个裸图标，没有底色、边框、圆角 */
+.sectionSort {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 2px;
+  border: none;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  &:hover {
+    color: var(--dsw-alias-label-primary);
+  }
+}
+
+.searchEmpty {
+  padding: 24px 10px;
+  font-size: 13px;
+  line-height: 20px;
+  text-align: center;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  margin-block: auto;
+  padding: 8px 6px;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+
+  &:hover {
+    background-color: var(--dsw-specific-sidebar-nav-item-hover);
+  }
+
+  &:focus-visible {
+    box-shadow: inset 0 0 0 2px var(--dsw-alias-button-primary-fill);
+  }
+}
+
+.accountAvatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-tertiary);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.accountName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--dsw-alias-label-primary);
+}
+
+.accountMore {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* ---------- 搜索整页展开 ---------- */
+.searchFull {
+  position: fixed;
+  inset: 0;
+  z-index: 850;
+  width: 100%;
+  max-width: none;
+  border-radius: 0;
+  border-right: none;
+  background-color: var(--dsw-alias-bg-base);
+}
+
+/* ---------- 多选操作条 ---------- */
+.selectBar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-around;
+  gap: 4px;
+  padding: 10px 8px calc(10px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--dsw-alias-border-l2-darkmode-thin);
+  background-color: var(--dsw-alias-bg-base);
+}
+
+.selectAction {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1;
+  min-height: 42px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--dsw-alias-interactive-bg-hover);
+  }
+}
+
+.selectDanger {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.selectEntry {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+}
+
+.bottom {
+  gap: 4px;
+}
+
+/* ---------- 「选择对话」独立整页：fixed 铺满整个视口，让开状态栏/导航条 ---------- */
+.selectPage {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding-top: var(--safe-top, 0px);
+  padding-bottom: var(--safe-bottom, 0px);
+  /* 直接沿用侧栏壁纸整屏铺满，字色标记也复用侧栏的 */
+  background-color: var(--dsw-alias-bg-base);
+  background-image: var(--sider-wallpaper, none);
+  background-size: cover;
+  background-position: center;
+}
+
+/* 选择对话页字色标记仍由 App.tsx 打（data-wp-text-light-sider 供字色规则用），但不再加遮罩 */
+
+.selectHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 14px 14px 6px;
+}
+
+.selectTitle {
+  flex: 1;
+  min-width: 0;
+  font-size: 19px;
+  line-height: 26px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.selectAll {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 100px;
+  background: none;
+  color: var(--dsw-alias-brand-text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.selectClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background-color: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+}
+
+.selectList {
+  flex: 1;
+  min-height: 0;
+  padding: 0 8px;
+  overflow-y: auto;
+}
+
+.selectRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 46px;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--dsw-alias-interactive-bg-hover);
+  }
+}
+
+.selectRowTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--dsw-alias-border-l2);
+  border-radius: 50%;
+  color: var(--dsw-static-neutral-bluish-00);
+}
+
+.checkOn {
+  border-color: transparent;
+  background-color: var(--dsw-alias-brand-primary);
+}
+
+/* ---------- 侧栏壁纸：字体直接落在壁纸上，按壁纸明暗切字色 ---------- */
+.mobilePanel {
+  background-image: var(--sider-wallpaper, none);
+  background-size: cover;
+  background-position: center;
+}
+
+/* 暗壁纸 → 全部文字切纯白 + 字影（不用灰字：灰字深浅壁纸都看不清） */
+[data-sider-wallpaper-dark] .mobilePanel .searchBox {
+  background-color: rgba(255, 255, 255, 0.16);
+}
+
+[data-sider-wallpaper-dark] .mobilePanel .searchInput,
+[data-sider-wallpaper-dark] .mobilePanel .sectionHeader,
+[data-sider-wallpaper-dark] .mobilePanel .accountName,
+[data-sider-wallpaper-dark] .mobilePanel .sectionSort {
+  color: #ffffff;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
+}
+
+[data-sider-wallpaper-dark] .mobilePanel .searchInput::placeholder {
+  color: rgba(255, 255, 255, 0.75);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
+}
+
+[data-sider-wallpaper-dark] .mobilePanel .item {
+  color: #ffffff;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
+}
+
+[data-sider-wallpaper-dark] .mobilePanel .item.active {
+  color: #ffffff;
+  font-weight: 600;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65);
+}
+
+[data-sider-wallpaper-dark] .mobilePanel .accountAvatar {
+  background-color: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+[data-sider-wallpaper-dark] .mobilePanel .accountMore,
+[data-sider-wallpaper-dark] .mobilePanel .searchEmpty {
+  color: #ffffff;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
+}
+
+/* 亮壁纸补齐（此前只有暗分支，亮壁纸下这几处跟主题灰阶不跟壁纸） */
+[data-sider-wallpaper]:not([data-sider-wallpaper-dark]) .mobilePanel .accountMore,
+[data-sider-wallpaper]:not([data-sider-wallpaper-dark]) .mobilePanel .searchEmpty {
+  color: #0b1220;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+/* 预设字色赢过明暗自动（双保险） */
+[data-sider-wallpaper] .mobilePanel .accountMore,
+[data-sider-wallpaper] .mobilePanel .searchEmpty {
+  color: var(--wp-sider-text, #0b1220) !important;
+}
+
+[data-sider-wallpaper-dark] .mobilePanel .accountMore,
+[data-sider-wallpaper-dark] .mobilePanel .searchEmpty {
+  color: var(--wp-sider-text, #ffffff) !important;
+}
+
+/* 亮壁纸 → 纯黑 + 白光晕（同理不用灰字） */
+[data-sider-wallpaper]:not([data-sider-wallpaper-dark]) .mobilePanel .searchBox {
+  background-color: rgba(255, 255, 255, 0.35);
+}
+
+[data-sider-wallpaper]:not([data-sider-wallpaper-dark]) .mobilePanel .sectionHeader,
+[data-sider-wallpaper]:not([data-sider-wallpaper-dark]) .mobilePanel .accountName,
+[data-sider-wallpaper]:not([data-sider-wallpaper-dark]) .mobilePanel .sectionSort {
+  color: #0b1220;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+[data-sider-wallpaper]:not([data-sider-wallpaper-dark]) .mobilePanel .item {
+  color: #0b1220;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+[data-sider-wallpaper]:not([data-sider-wallpaper-dark]) .mobilePanel .item.active {
+  color: #0b1220;
+  font-weight: 600;
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.9);
+}
+
+/* 侧栏壁纸铺满整块面板（.mobilePanel 才是壁载体，防止只铺内容列） */
+.mobilePanel .sider {
+  background-color: transparent;
+  border-right: none;
+}
+
+[data-sider-wallpaper-dark] .mobilePanel .sider {
+  background-color: transparent;
+}
+
+/* ---------- 选择对话页复用侧栏壁纸：字色跟随侧栏明暗标记 ---------- */
+[data-sider-wallpaper-dark] .selectPage .sectionHeader,
+[data-sider-wallpaper-dark] .selectPage .selectTitle,
+[data-sider-wallpaper-dark] .selectPage .selectRow {
+  color: rgba(248, 250, 252, 0.95);
+}
+
+[data-sider-wallpaper-dark] .selectPage .selectRowTitle {
+  color: rgba(248, 250, 252, 0.95);
+}
+
+[data-sider-wallpaper-dark] .selectPage .selectClose,
+[data-sider-wallpaper-dark] .selectPage .selectAll {
+  color: rgba(248, 250, 252, 0.9);
+}
+
+[data-sider-wallpaper-dark] .selectPage .selectClose {
+  background-color: rgba(255, 255, 255, 0.16);
+}
+
+[data-sider-wallpaper-dark] .selectPage .selectAction {
+  color: rgba(248, 250, 252, 0.92);
+}
+
+/* 亮壁纸补齐 selectTitle/selectClose/selectAll/selectAction/selectDanger */
+[data-sider-wallpaper]:not([data-sider-wallpaper-dark]) .selectPage .sectionHeader,
+[data-sider-wallpaper]:not([data-sider-wallpaper-dark]) .selectPage .selectTitle {
+  color: #0b1220;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+[data-sider-wallpaper]:not([data-sider-wallpaper-dark]) .selectPage .selectClose,
+[data-sider-wallpaper]:not([data-sider-wallpaper-dark]) .selectPage .selectAll {
+  color: #0b1220;
+}
+
+[data-sider-wallpaper]:not([data-sider-wallpaper-dark]) .selectPage .selectAction {
+  color: #0b1220;
+}
+
+[data-sider-wallpaper]:not([data-sider-wallpaper-dark]) .selectPage .selectDanger {
+  color: #b91c1c;
+}
+
+/* 预设字色双保险（跟 mobilePanel 同配方） */
+[data-sider-wallpaper] .selectPage .sectionHeader,
+[data-sider-wallpaper] .selectPage .selectTitle,
+[data-sider-wallpaper] .selectPage .selectRow,
+[data-sider-wallpaper] .selectPage .selectRowTitle,
+[data-sider-wallpaper] .selectPage .selectClose,
+[data-sider-wallpaper] .selectPage .selectAll,
+[data-sider-wallpaper] .selectPage .selectAction {
+  color: var(--wp-sider-text, #0b1220) !important;
+  text-shadow: none;
+}
+
+[data-sider-wallpaper-dark] .selectPage .sectionHeader,
+[data-sider-wallpaper-dark] .selectPage .selectTitle,
+[data-sider-wallpaper-dark] .selectPage .selectRow,
+[data-sider-wallpaper-dark] .selectPage .selectRowTitle,
+[data-sider-wallpaper-dark] .selectPage .selectClose,
+[data-sider-wallpaper-dark] .selectPage .selectAll,
+[data-sider-wallpaper-dark] .selectPage .selectAction {
+  color: var(--wp-sider-text, #ffffff) !important;
+}
+
+[data-sider-wallpaper-dark] .selectPage .selectDanger {
+  color: rgba(252, 165, 165, 0.95);
+}
+
+[data-sider-wallpaper]:not([data-sider-wallpaper-dark]) .selectPage .selectRow {
+  color: rgba(17, 24, 39, 0.92);
+}
+
+/* 侧栏自定义字色变量优先（覆盖明暗自动切换） */
+[data-sider-wallpaper] .mobilePanel .searchInput,
+[data-sider-wallpaper] .mobilePanel .sectionHeader,
+[data-sider-wallpaper] .mobilePanel .accountName,
+[data-sider-wallpaper] .mobilePanel .item {
+  color: var(--wp-sider-text, currentColor);
+}
+
+/* 自定义字色必须赢过所有明暗分支：用 !important 钉死；自动档回落明暗自动色（空 var 会整条作废） */
+[data-sider-wallpaper] .mobilePanel .searchInput,
+[data-sider-wallpaper] .mobilePanel .sectionHeader,
+[data-sider-wallpaper] .mobilePanel .accountName,
+[data-sider-wallpaper] .mobilePanel .item,
+[data-sider-wallpaper] .mobilePanel .item.active {
+  color: var(--wp-sider-text, #0b1220) !important;
+  text-shadow: none;
+}
+
+[data-sider-wallpaper-dark] .mobilePanel .searchInput,
+[data-sider-wallpaper-dark] .mobilePanel .sectionHeader,
+[data-sider-wallpaper-dark] .mobilePanel .accountName,
+[data-sider-wallpaper-dark] .mobilePanel .item,
+[data-sider-wallpaper-dark] .mobilePanel .item.active {
+  color: var(--wp-sider-text, #ffffff) !important;
 }

@@ -1,75 +1,39 @@
-# chat-demo
+# fakeseek
 
-English | [简体中文](README.zh-CN.md)
+> 基于 [deepseek-ai/chat-demo](https://github.com/deepseek-ai/chat-demo)（MIT 协议）的**轻量化二改版**。
+> **本项目不是 DeepSeek 官方产品，与官方无任何隶属关系**；官方商标与 Logo 均未使用。
+> 仅对前端交互、外观与本地打包流程做了个人化的轻量调整，核心能力仍来自官方公开的开源代码。
 
-A static chat demo powered by the DeepSeek API. No application backend is required: the browser connects directly to the configured API service.
+一个可自行打包的 DeepSeek 对话客户端：填入你自己的 API Key 后即可在 Android 上使用。
+**不自带任何账号或额度**，Key 仅保存在本机，费用由你自己的开放平台账号承担。
 
-You can [try the app online](https://deepseek-ai.github.io/chat-demo/) or download the archive from [Releases](https://github.com/deepseek-ai/deepseek-chat-demo/releases), extract it, and double-click `index.html` to use it locally without installation or a build. Enter your API key in Settings before your first chat.
+## 与上游的差异（轻量化二改点）
 
-## Getting started
+- **壁纸系统**：聊天区 / 侧栏 / 设置页三处独立壁纸，支持裁剪、明暗自适应
+- **分区字色**：每个区域可单独指定「自动 / 黑 / 白」，优先级 用户字色 > 磨砂面板 > 壁纸明暗
+- **输入卡**：磨砂玻璃质感、字号全局可调、语音输入与朗读
+- **移动端交互**：抽屉式侧栏 push 动效、边缘手势返回、沉浸式状态栏
+- **会话**：本地 IndexedDB 存储、官方导出包导入（合并去重）、导出备份
+- **Android 打包**：Capacitor 壳 + Gradle 编译，一条命令重出 APK
 
-Install Node.js 22.12+ and pnpm, then run:
+## 自行构建
 
-```sh
-git clone https://github.com/deepseek-ai/chat-demo.git
-cd chat-demo
+需要 Node 20+、pnpm、JDK 21、Android SDK（compileSdk 36）、Gradle 8.14。详见 `docs/BUILD.md`。
+
+```bash
 pnpm install
-pnpm dev
+npx rspack build -c rspack.config.ts
+npx cap sync android
+cd android && ./gradlew assembleDebug
 ```
 
-Open http://localhost:8090.
+## 许可证
 
-To build the static site:
+MIT。上游版权归 DeepSeek 所有，二改部分同样以 MIT 发布。
+**不得使用"DeepSeek"名称或官方 Logo 作为本应用身份标识。**
 
-```sh
-pnpm build
-```
+## 免责
 
-The output is written to `dist/`. Deploy it to a static web server or open `dist/index.html` directly. Opening the file directly requires browser support for storage on `file://` pages and an API service that permits their cross-origin requests.
-
-## Features
-
-- Multiple conversations with automatic titles, renaming, and deletion; edit prompts, regenerate replies, and switch between message branches.
-- Streaming replies, deep thinking, smart search, link reading, and source citations; stop generation or continue eligible replies.
-- Upload, paste, or drag and drop attachments; use voice input and read replies aloud. A live audio spectrum appears in the first row of the input area while recording on mobile.
-- Markdown, syntax highlighting, KaTeX math, and Mermaid diagrams.
-- Simplified Chinese and English, light and dark themes, mobile layouts, location settings, and chat history import and export.
-
-## Data and storage
-
-Your API key and settings are stored in the browser's localStorage. Conversations and original attachments are stored in IndexedDB. Local data is isolated by browser profile and site origin. Sending messages, uploading attachments, and using speech features sends the relevant content to the configured API service.
-
-History import and export in Settings use ZIP archives. After confirmation and successful validation, importing replaces all local conversations and attachments. Exports include conversations and locally available original images, but exclude API keys, settings, and original non-image attachments. See the [history import/export documentation (Chinese)](src/services/chat/history/README.md) for the archive format and preservation details.
-
-Settings → Data → Delete all chats clears all local conversations, original attachments, and unsent drafts after confirmation. It stops ongoing replies and returns to a new chat. Your API key and settings are preserved; files already uploaded to the API service are not deleted.
-
-## Development
-
-| Command       | Description                  |
-| ------------- | ---------------------------- |
-| `pnpm dev`    | Start the development server |
-| `pnpm build`  | Build into `dist/`           |
-| `pnpm type`   | Run TypeScript type checks   |
-| `pnpm lint`   | Lint with oxlint             |
-| `pnpm format` | Format with oxfmt            |
-
-[rspack.config.ts](rspack.config.ts) uses `https://api.deepseek.com` by default. Use `createConfig({ apiOrigin, devServer })` to customize the API origin and development server proxy.
-
-Chat uses `deepseek-flash` by default through Anthropic-compatible Messages / Files APIs. Speech features use ASR / TTS endpoints. Requests include extensions for search, link reading, titles, and `latest_reminder`, so the configured service must support the corresponding capabilities. Supported attachment formats are determined by server-side validation.
-
-```text
-src/
-  app/                 Application layout, themes, and global styles
-  components/          Chat, settings, Markdown, and other UI components
-  i18n/                English and Chinese translations
-  services/
-    api/               API requests, SSE, and protocol types
-    chat/              Conversations, message branches, storage, and history import/export
-    markdown/          Markdown parsing, syntax highlighting, and diagrams
-    speech/            Audio recording and read-aloud playback
-  utils/               Shared utilities
-```
-
-## License
-
-[MIT](LICENSE). The build copies the license to `dist/LICENSE`; include it when distributing the app. Third-party dependencies are subject to their own licenses.
+- 本项目仅供个人学习与技术研究使用
+- API 费用、账号封禁等风险由使用者自行承担
+- 与 DeepSeek 官方无任何关联，官方不对本项目提供任何支持或担保

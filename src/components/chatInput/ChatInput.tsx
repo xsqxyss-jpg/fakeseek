@@ -1,13 +1,14 @@
 import clsx from 'clsx'
-import { memo, useCallback, useEffect, useLayoutEffect, useRef } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   IconGlobeLanguageOutline14,
-  IconPaperclipOutline16,
-  IconSendOutline16,
   IconStopFill16,
   IconThinkOutline14,
 } from '../base/icons.js'
-import { setSearch, setThinking, useSettings } from '../../services/settings.js'
+import { IconAttachCircleOutline24, IconMoreCircleOutline24 } from '../base/iconsExtra.js'
+import { setModel, setSearch, setThinking, useSettings, getWallpaperTextColor } from '../../services/settings.js'
+import { hitRate, useUsage } from '../../services/chat/usage.js'
+import { BUILTIN_MODELS, cachedModels, fetchModels, type ModelOption } from '../../services/api/models.js'
 import { useIsMobile } from '../../app/viewport.js'
 import { sendMessage, stopReply, useChatStore } from '../../services/chat/store.js'
 import {
@@ -21,7 +22,6 @@ import {
   useDrafts,
 } from '../../services/chat/drafts.js'
 import { stopReadAloud } from '../../services/speech/readAloud.js'
-import { IconButton } from '../base/IconButton.js'
 import { Tooltip } from '../base/Tooltip.js'
 import { ensureApiKey } from '../settings/settingsDialogState.js'
 import { DragMask, useFileDrop } from './DragMask.js'
@@ -42,6 +42,15 @@ export const ChatInput = memo(function ChatInput({ sessionId }: { sessionId: str
 
 const Input = ({ sessionId }: { sessionId: string | null }) => {
   const t = useTranslate()
+  // 字色订阅：预设变更事件触发重渲染，行内 style 重新求值（本组件不因字色变化自动重渲染）
+  const [wpInputColor, setWpInputColor] = useState(
+    () => getWallpaperTextColor('input') ?? getWallpaperTextColor('chat')
+  )
+  useEffect(() => {
+    const sync = () => setWpInputColor(getWallpaperTextColor('input') ?? getWallpaperTextColor('chat'))
+    window.addEventListener('chat-demo:text-colors-changed', sync)
+    return () => window.removeEventListener('chat-demo:text-colors-changed', sync)
+  }, [])
   const draft = useDrafts((state) => state.drafts.get(sessionId) ?? EMPTY_DRAFT)
   const { text, attachments } = draft
   const setText = (value: string) => setDraftText(sessionId, value)
@@ -56,6 +65,8 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const togglesRef = useRef<HTMLDivElement>(null)
+  /** 「更多」面板展开状态：模型切换与缓存命中率都在这一层里 */
+  const [moreOpen, setMoreOpen] = useState(false)
 
   useLayoutEffect(() => {
     const toggles = togglesRef.current
@@ -64,6 +75,11 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
     }
 
     const updateLabels = () => {
+      // 移动端官方样式胶囊必须带字，永不折叠成纯图标；桌面端空间不足才折叠。
+      if (isMobile) {
+        toggles.classList.remove(styles.collapsedToggles)
+        return
+      }
       toggles.classList.remove(styles.collapsedToggles)
       toggles.classList.toggle(styles.collapsedToggles, toggles.scrollWidth > toggles.clientWidth)
     }
@@ -72,7 +88,7 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
     const observer = new ResizeObserver(updateLabels)
     observer.observe(toggles)
     return () => observer.disconnect()
-  }, [t])
+  }, [t, isMobile])
 
   const acceptFiles = (files: File[]) => {
     if (files.length === 0 || useChatStore.getState().importingHistory || !ensureApiKey()) {
@@ -129,10 +145,13 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   // 移动端录音时用频谱替代输入框内容
   const recording = voice.status === 'recording'
 
-  // 排队、上传中或上传失败的附件都留在输入框，全部上传成功后才能发送
+  // 排队、上传中或上传失败的附件都留在输入框，全部上传成功后才能发送（发送走键盘回车，官方无发送钮）
   const canSend = !importingHistory && !streaming && voice.status === 'idle' && draftReady
 
   const send = () => {
+    if (!canSend) {
+      return
+    }
     if (
       useChatStore.getState().importingHistory ||
       voice.status !== 'idle' ||
@@ -172,6 +191,8 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
           autoFocus={!isMobile}
           disabled={importingHistory}
           value={text}
+          // 字色直接写行内 style：变量在部分端上被级联吞掉，行内没有中间层
+          style={wpInputColor ? { color: wpInputColor } : undefined}
           onChange={(event) => setText(event.target.value)}
           onMouseDown={(event) => {
             // 首次点击时手动聚焦，避免 Safari 把整个页面滚到输入框位置。
@@ -228,6 +249,33 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
           </Tooltip>
         </div>
         <div className={styles.right}>
+          <button
+            type="button"
+            className={styles.attachButton}
+            aria-label={t('uploadFile')}
+            disabled={importingHistory}
+            onClick={() => {
+              // 附件走官方 Files API，必须先有 Key；没有就提示原因，不闷头跳设置。
+              if (!useSettings.getState().apiKey) {
+                showToast({ key: 'attachNeedsKey' })
+                return
+              }
+              fileInputRef.current?.click()
+            }}
+          >
+            <IconAttachCircleOutline24 />
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            hidden
+            accept={ACCEPT}
+            onChange={(event) => {
+              acceptFiles(Array.from(event.target.files ?? []))
+              event.target.value = ''
+            }}
+          />
           <VoiceButton
             status={voice.status}
             disabled={!voice.available}
@@ -239,25 +287,6 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
               ) {
                 void voice.toggle()
               }
-            }}
-          />
-          <IconButton
-            size="m"
-            tone="primary"
-            icon={<IconPaperclipOutline16 />}
-            tooltip={t('uploadFile')}
-            disabled={importingHistory}
-            onClick={() => ensureApiKey() && fileInputRef.current?.click()}
-          />
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            hidden
-            accept={ACCEPT}
-            onChange={(event) => {
-              acceptFiles(Array.from(event.target.files ?? []))
-              event.target.value = ''
             }}
           />
           {streaming && sessionId ? (
@@ -273,19 +302,112 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
               <IconStopFill16 />
             </button>
           ) : (
+            // 官方输入卡没有发送钮（靠键盘回车发送）；此处给「更多」：模型切换 + 缓存命中率
             <button
               type="button"
-              className={clsx(styles.sendButton, !canSend && styles.disabled)}
-              aria-label={t('send')}
-              aria-disabled={!canSend}
-              onClick={send}
+              className={clsx(styles.moreButton, moreOpen && styles.moreButtonOpen)}
+              aria-label={t('moreOptions')}
+              aria-expanded={moreOpen}
+              onClick={() => setMoreOpen(!moreOpen)}
             >
-              <IconSendOutline16 />
+              <IconMoreCircleOutline24 />
             </button>
           )}
         </div>
       </div>
+      {moreOpen && !streaming ? (
+        <MorePanel
+          onClose={() => setMoreOpen(false)}
+        />
+      ) : null}
       {dragging ? <DragMask /> : null}
+    </div>
+  )
+}
+
+/**
+ * 输入卡上方的「更多」面板（可展开/收起）：官方主界面没有这些信息，
+ * 所以只在这个折叠层里露出——模型切换 + 累计缓存命中率与 token 用量。
+ */
+const MorePanel = ({ onClose }: { onClose: () => void }) => {
+  const t = useTranslate()
+  const model = useSettings((state) => state.model)
+  const apiKey = useSettings((state) => state.apiKey)
+  const totals = useUsage()
+  const rate = hitRate(totals)
+  /** 模型清单：先手缓存，有 Key 时再后台刷新一次（7 天缓存，不产生费用） */
+  const [models, setModels] = useState<ModelOption[]>(() => {
+    const cached = cachedModels()
+    return cached.length > 0 ? cached : BUILTIN_MODELS
+  })
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!apiKey) {
+      return
+    }
+    let cancelled = false
+    setLoading(true)
+    fetchModels(apiKey)
+      .then((list) => {
+        if (!cancelled && list.length > 0) {
+          setModels(list)
+        }
+      })
+      .catch(() => {
+        // 拉取失败保留现有清单（缓存或内置），不打断对话
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [apiKey])
+
+  return (
+    <div className={styles.morePanel} role="group" aria-label={t('moreOptions')}>
+      <div className={styles.moreSection}>
+        <div className={styles.moreSectionTitle}>
+          {t('modelSwitch')}
+          {loading ? <span className={styles.moreLoading}> · {t('modelLoading')}</span> : null}
+        </div>
+        <div className={styles.modelRow}>
+          {models.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={clsx(styles.modelOption, model === item.id && styles.modelSelected)}
+              aria-pressed={model === item.id}
+              onClick={() => {
+                setModel(item.id)
+                onClose()
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        {apiKey ? null : <div className={styles.moreHint}>{t('modelNeedsKey')}</div>}
+      </div>
+      <div className={styles.moreDivider} />
+      <div className={styles.moreSection}>
+        <div className={styles.moreSectionTitle}>{t('cacheHitRate')}</div>
+        <div className={styles.moreStats}>
+          <span className={styles.moreStatMain}>
+            {rate === null ? '—' : `${(rate * 100).toFixed(1)}%`}
+          </span>
+          <span className={styles.moreStatSub}>
+            {t('cacheHitDetail', {
+              hit: totals.cacheHit,
+              miss: totals.cacheMiss,
+              requests: totals.requests,
+            })}
+          </span>
+        </div>
+      </div>
     </div>
   )
 }

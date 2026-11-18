@@ -1,10 +1,16 @@
 import { create } from 'zustand'
 import { createId } from '../../utils/id.js'
 import { ApiError, streamMessage } from '../api/client.js'
+import {
+  dropContextSummary,
+  ensureContextSummary,
+  resetContextSummaries,
+} from './contextSummary.js'
 import type { ChatModel, CreateMessageRequest } from '../api/types.js'
 import { extractFileIds, getFileErrorCode, isRetryableApiError } from '../api/errors.js'
 import { cancelUpload, describeUploadError, uploadAttachment, useUploads } from '../attachments.js'
-import { useSettings } from '../settings.js'
+import { DEFAULT_SYSTEM_PROMPT, useSettings } from '../settings.js'
+import { recordUsage } from './usage.js'
 import { appendBranch, getVisibleMessages, normalizeSession, selectVersion } from './branches.js'
 import * as db from './db.js'
 import {
@@ -33,9 +39,29 @@ import {
 } from './types.js'
 
 /** deepseek-flash 同时支持深度思考与图片输入 */
+/** 把一条回复的用量记进本地统计（同 id 去重，重复落盘只补差值）。 */
+const recordUsageFromReply = (reply: AssistantMessage) => {
+  const usage = reply.usage
+  if (!usage) {
+    return
+  }
+  recordUsage(reply.id, {
+    input: usage.input_tokens,
+    cacheRead: usage.cache_read_input_tokens,
+    cacheCreation: usage.cache_creation_input_tokens,
+    output: usage.output_tokens,
+  })
+}
+
+/** 兜底模型：用户没选过时用 flash（与官方演示一致） */
 const MODEL: ChatModel = 'deepseek-flash'
+
+/** 当前生效模型：设置里的选择优先，续写/重发沿用消息自身记录。 */
+const currentModel = (): ChatModel => useSettings.getState().model ?? MODEL
 /** 所有生成请求统一携带的助手身份说明 */
-const SYSTEM_PROMPT = '该助手为DeepSeek，由深度求索公司创造。'
+/** 实际发送的系统提示词：用户自定义优先，未设置用中性默认（不冒充官方人设）。 */
+const effectiveSystemPrompt = () =>
+  useSettings.getState().systemPrompt ?? DEFAULT_SYSTEM_PROMPT
 /** 保留最近打开的详情；当前会话、生成中及尚未成功保存的会话不淘汰。 */
 const SESSION_CACHE_LIMIT = 5
 /** 安全审核固定开启，所有请求都走扩展模式 */
@@ -260,7 +286,7 @@ const createReply = (): AssistantMessage => {
     id: createId(),
     role: 'assistant',
     createdAt: Date.now(),
-    model: MODEL,
+    model: currentModel(),
     thinking,
     search,
     prefix: true,
@@ -386,8 +412,66 @@ const waitForIdle = (sessionId?: string) =>
   })
 
 /**
+ * 合并导入历史对话：先写入暂存，成功后原子追加到现有记录（同 id 去重，不覆盖本地）。
+ * 期间停止生成并禁止修改会话；失败时清除暂存，保留原有记录。返回本次新增的会话数。
+ */
+export const mergeHistory = async (write: () => Promise<void>): Promise<number> => {
+  if (get().importingHistory) {
+    throw new Error('History import is already in progress')
+  }
+  set({ importingHistory: true })
+  try {
+    for (const controller of Object.values(get().streaming)) {
+      controller.abort()
+    }
+    // 已开始的单条删除先同步到内存，避免本次导入期间列表残留已被删除的记录。
+    await Promise.all(deletionTasks)
+    historyEpoch += 1
+    initTask = undefined
+    sessionLoads.clear()
+    await waitForIdle()
+    await db.clearStaging()
+    let added: number
+    let summaries: SessionSummary[]
+    try {
+      await write()
+      added = await db.mergeStaging()
+      summaries = await db.loadSessionSummaries()
+    } catch (error) {
+      await db.clearStaging().catch(db.reportStorageError('clear unfinished history import'))
+      throw error
+    }
+    sessionAccess.clear()
+    unsavedSessions.clear()
+    pendingFiles.clear()
+    clearAllDrafts()
+    resetContextSummaries()
+    set({
+      ready: true,
+      initError: false,
+      sessions: sortSessions(summaries),
+      sessionCache: {},
+      sessionLoadErrors: {},
+      sessionSaveErrors: {},
+      activeId: null,
+    })
+    return added
+  } finally {
+    set({ importingHistory: false })
+    retrySaveSessions()
+    const { activeId, ready } = get()
+    // 导入失败时恢复被取消的详情读取，原有记录继续可用。
+    if (activeId !== null) {
+      void ensureSessionLoaded(activeId)
+    } else if (!ready) {
+      void initChat()
+    }
+  }
+}
+
+/**
  * 替换历史对话：先写入暂存，成功后原子替换旧记录；写入为空即删除全部会话与附件。
- * 期间停止生成并禁止修改会话；失败时清除暂存，保留原有记录。
+ * 期间停止生成并禁止修改会话；失败时清除暂存，保留原有记录。仅供「删除全部」使用。
  */
 export const replaceHistory = async (write: () => Promise<void>): Promise<number> => {
   if (get().importingHistory) {
@@ -405,10 +489,9 @@ export const replaceHistory = async (write: () => Promise<void>): Promise<number
     sessionLoads.clear()
     await waitForIdle()
     await db.clearStaging()
-    let summaries: SessionSummary[]
     try {
       await write()
-      summaries = await db.commitStaging()
+      await db.clearAllHistory()
     } catch (error) {
       await db.clearStaging().catch(db.reportStorageError('clear unfinished history replacement'))
       throw error
@@ -417,16 +500,17 @@ export const replaceHistory = async (write: () => Promise<void>): Promise<number
     unsavedSessions.clear()
     pendingFiles.clear()
     clearAllDrafts()
+    resetContextSummaries()
     set({
       ready: true,
       initError: false,
-      sessions: sortSessions(summaries),
+      sessions: [],
       sessionCache: {},
       sessionLoadErrors: {},
       sessionSaveErrors: {},
       activeId: null,
     })
-    return summaries.length
+    return 0
   } finally {
     set({ importingHistory: false })
     retrySaveSessions()
@@ -501,6 +585,7 @@ const removeSessionData = async (id: string): Promise<boolean> => {
       return false
     }
     await db.deleteSession(id)
+    dropContextSummary(id)
     if (epoch !== historyEpoch) {
       return true
     }
@@ -709,7 +794,7 @@ export const continueReply = (sessionId: string, messageId: string) => {
   const reply: AssistantMessage = {
     ...previous,
     // 未记录请求配置的回复，续写时使用默认模型和当前开关。
-    model: previous.model ?? MODEL,
+    model: previous.model ?? currentModel(),
     thinking: previous.thinking ?? thinking,
     search: previous.search ?? search,
     status: 'pending',
@@ -989,18 +1074,32 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
         reply = { ...reply, latestReminder }
         updateReply(sessionId, reply)
         persist(sessionId)
+        // agent 式压缩：超出保留轮数的更早历史压成摘要携带（可在设置关闭；失败降级为纯截断）。
+        const { contextKeepRounds, contextSummary } = useSettings.getState()
+        const summary =
+          contextKeepRounds > 0 && contextSummary
+            ? await ensureContextSummary(
+                sessionId,
+                prepared.history,
+                Math.max(0, getContextRounds(prepared.history).length - contextKeepRounds),
+                useSettings.getState().apiKey ?? '',
+                initial.model ?? MODEL,
+                controller.signal
+              )
+            : undefined
         const messages = toRequestMessages(
           prepared.history,
           prepared.question,
           prepared.prefix,
           initial.thinking ?? false,
-          latestReminder
+          latestReminder,
+          summary
         )
         const events = streamMessage(
           useSettings.getState().apiKey ?? '',
           {
-            model: initial.model ?? MODEL,
-            system: SYSTEM_PROMPT,
+            model: initial.model ?? currentModel(),
+            system: effectiveSystemPrompt(),
             messages,
             thinking: { type: initial.thinking ? 'enabled' : 'disabled' },
             safety_check: SAFETY_CHECK,
@@ -1032,6 +1131,7 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
           }
         }
         reply = settleReply(reply, 'done', Date.now())
+        recordUsageFromReply(reply)
         break
       } catch (error) {
         if (controller.signal.aborted) {

@@ -35,3 +35,8 @@
   margin: 0 auto;
   padding-bottom: 24px;
 }
+
+/* 壁纸模式：列表容器基准字色跟聊天区（子元素未自设色时继承） */
+:global([data-app-wallpaper]) .column {
+  color: var(--wp-chat-text, var(--dsw-alias-label-primary));
+}

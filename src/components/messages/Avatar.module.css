@@ -1,0 +1,34 @@
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
+  user-select: none;
+  overflow: hidden;
+}
+
+/* 自定义头像图片：撑满圆形容器，居中裁剪 */
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 用户：品牌蓝底 + 白色前景字，深浅主题均由 alias token 自动切换。 */
+.user {
+  background-color: var(--dsw-alias-brand-primary);
+  color: var(--dsw-alias-label-primary-foreground);
+}
+
+/* 助手：中性对比填充 + 反色文字，深色主题下自动反转，与页面背景保持层次。 */
+.assistant {
+  background-color: var(--dsw-alias-button-contrast-fill);
+  color: var(--dsw-alias-label-primary-inverted);
+}

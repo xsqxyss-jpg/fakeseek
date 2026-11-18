@@ -11,6 +11,22 @@
   }
 }
 
+.body {
+  min-width: 0;
+}
+
+.content {
+  min-width: 0;
+  font-size: var(--app-font-size, 16px);
+}
+
+/* 壁纸模式：助手消息无卡片无底色，正文直接落在壁纸上（字色由用户在个性化里自定义） */
+:global([data-app-wallpaper]) .content {
+  padding: 0;
+  background: none;
+  backdrop-filter: none;
+}
+
 .waiting {
   display: flex;
   align-items: center;
@@ -136,4 +152,19 @@
     background-color: var(--dsw-alias-interactive-bg-hover);
     --search-row-site-logo-color: var(--dsw-alias-interactive-bg-hover);
   }
+}
+
+/* 助手正文：壁纸模式优先消费自定义字色，回落默认 */
+:global([data-app-wallpaper]) .content {
+  color: var(--wp-chat-text, var(--dsw-alias-label-primary));
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* 自定义字色赢过明暗分支；自动档回落亮/暗自动色（空 var 的 !important 会整条作废） */
+[data-app-wallpaper] .content {
+  color: var(--wp-chat-text, var(--dsw-alias-label-primary)) !important;
+}
+
+[data-app-wallpaper-dark] .content {
+  color: var(--wp-chat-text, rgba(248, 250, 252, 0.96)) !important;
 }

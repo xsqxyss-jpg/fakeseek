@@ -1,0 +1,42 @@
+.row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.chip {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--wp-settings-ink, var(--dsw-alias-border-l2));
+  border-radius: 100px;
+  background-color: transparent;
+  color: var(--wp-settings-ink, var(--dsw-alias-label-primary));
+  font: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.chip.on {
+  border-color: transparent;
+  background-color: var(--wp-settings-ink, var(--dsw-alias-button-ghost-active-fill));
+  color: var(--dsw-alias-bg-base, #fff);
+  font-weight: 500;
+}
+
+/* 深面板（白字）：选中胶囊用字色反白——白字选中的胶囊黑磨砂底白描白字才可见；
+   浅面板（黑字）：深字选中的胶囊黑磨砂底白字（与选中高光规范一致） */
+:global([data-settings-wallpaper]:not([data-wp-text-light-settings])) .chip.on {
+  background-color: rgba(24, 26, 30, 0.72) !important;
+  border: 1.2px solid rgba(255, 255, 255, 0.35) !important;
+  color: #ffffff !important;
+}
+
+:global([data-settings-wallpaper][data-wp-text-light-settings]) .chip.on {
+  background-color: rgba(17, 24, 39, 0.72) !important;
+  border: 1.2px solid rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+}

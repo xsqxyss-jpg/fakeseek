@@ -58,18 +58,21 @@ export const ReplyArea = memo(function ReplyArea({
   view,
   streaming,
   hasResponse,
+  leading,
 }: {
   message: AssistantMessage
   view: ReplyView
   streaming: boolean
   hasResponse: boolean
+  /** 第一行左侧的头像（只占标题行，不参与正文排版） */
+  leading?: ReactNode
 }) {
   useTranslate()
   const [open, setOpen] = useState(true)
   const titleActive = streaming && !hasResponse
   useTicker(titleActive, 1000)
   if (view.steps.length === 0 && !(message.thinking && streaming)) {
-    return null
+    return leading ? <div className={styles.leadingOnly}>{leading}</div> : null
   }
   // 未记录请求开关时，按是否有思考内容显示标题。
   const thinking = message.thinking ?? view.steps.some((step) => step.type === 'thinking')
@@ -78,12 +81,15 @@ export const ReplyArea = memo(function ReplyArea({
   return (
     <div className={styles.area}>
       {title ? (
-        <div className={styles.title} onClick={() => setOpen((value) => !value)}>
-          <span className={clsx(styles.titleIcon, stopped && styles.stoppedIcon)}>
-            <IconThinkOutline16 />
-          </span>
-          <span className={clsx(styles.titleText, titleActive && styles.shimmer)}>{title}</span>
-          {open ? <IconChevronDownOutline14 /> : <IconChevronRightOutline14 />}
+        <div className={styles.titleRow}>
+          {leading ? <span className={styles.titleAvatar}>{leading}</span> : null}
+          <div className={styles.title} onClick={() => setOpen((value) => !value)}>
+            <span className={clsx(styles.titleIcon, stopped && styles.stoppedIcon)}>
+              <IconThinkOutline16 />
+            </span>
+            <span className={clsx(styles.titleText, titleActive && styles.shimmer)}>{title}</span>
+            {open ? <IconChevronDownOutline14 /> : <IconChevronRightOutline14 />}
+          </div>
         </div>
       ) : null}
       {open || !title ? (

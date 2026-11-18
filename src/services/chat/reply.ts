@@ -14,6 +14,7 @@ import type {
   ReplyStatus,
   UserMessage,
 } from './types.js'
+import { useSettings } from '../settings.js'
 
 /**
  * 文件按 Files API 的 file_id（附件的 serverId）引用：图片用 image 块，其余用 document 块。
@@ -305,7 +306,9 @@ export const toRequestMessages = (
   question: UserMessage,
   prefix?: AssistantMessage,
   thinking = prefix?.thinking ?? false,
-  latestReminder?: string
+  latestReminder?: string,
+  /** 更早历史的压缩摘要；有值时作为首条 user 消息携带，模型不断片 */
+  contextSummary?: string
 ): MessageParam[] => {
   const messages: MessageParam[] = []
   let previousReminder: string | undefined
@@ -316,7 +319,17 @@ export const toRequestMessages = (
       previousReminder = reminder
     }
   }
-  for (const [user, reply] of getContextRounds(history)) {
+  if (contextSummary) {
+    messages.push({
+      role: 'user',
+      content: `【以下是本会话更早对话的压缩摘要，供延续上下文】\n${contextSummary}`,
+    })
+  }
+  // 上下文压缩（可选）：只带最近 N 轮完整问答，更早轮次整体省略。
+  // 轮次天然成对，不会切断消息或丢失 signature；0 = 不限制，保持官方全量行为。
+  const keepRounds = useSettings.getState().contextKeepRounds
+  const rounds = getContextRounds(history)
+  for (const [user, reply] of keepRounds > 0 ? rounds.slice(-keepRounds) : rounds) {
     // 历史提问没有文字、附件也都没有 serverId 时，提问为空，连同回答一起省略。
     if (!user.content && toFileBlocks(user.files).length === 0) {
       continue

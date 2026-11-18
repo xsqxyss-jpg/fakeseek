@@ -9,3 +9,12 @@ build/
 .env.*
 !.env.example
 tmp/
+
+# 本地构建产物与备份
+android/build/
+android/app/build/
+android/local.properties
+android/build.log
+*.bak
+*.bak-*
+build-debug.sh

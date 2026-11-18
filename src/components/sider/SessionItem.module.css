@@ -59,8 +59,13 @@
   outline: none;
 }
 
+/* 触屏无 hover：官方列表行干净无省略号，仅当前会话行露出操作入口 */
 @media (hover: none) {
   .action {
+    display: none;
+  }
+
+  .active .action {
     display: flex;
   }
 }
@@ -83,4 +88,78 @@
     border-radius: 16px;
     font-size: 16px;
   }
+}
+
+/* 官方 App 风格：列表为纯文字标题行，无胶囊底色；选中仅加粗 */
+.item {
+  height: 42px;
+  padding: 10px;
+  border-radius: 10px;
+
+  &.active {
+    background-color: transparent;
+    color: var(--dsw-alias-label-primary);
+    font-weight: 600;
+  }
+
+  @media (hover: hover) {
+    &:not(.active):hover {
+      background-color: transparent;
+      opacity: 0.75;
+    }
+  }
+}
+
+@media not all and (min-width: 768px) {
+  .item {
+    height: 46px;
+    padding: 12px 10px;
+    font-size: 16px;
+    font-weight: 500;
+  }
+}
+
+/* 多选态：整行可勾选，左侧圆形勾选框 */
+.check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  margin-right: 12px;
+  border: 1.5px solid var(--dsw-alias-border-l2);
+  border-radius: 50%;
+  color: var(--dsw-static-neutral-bluish-00);
+  box-sizing: border-box;
+}
+
+.checkOn {
+  border-color: transparent;
+  background-color: var(--dsw-alias-brand-primary);
+}
+
+.selected {
+  background-color: var(--dsw-alias-interactive-bg-hover);
+}
+
+/* 置顶标记 */
+.pinMark {
+  display: flex;
+  flex-shrink: 0;
+  margin-left: 6px;
+  color: var(--dsw-alias-brand-text);
+  opacity: 0.75;
+}
+
+/* 壁纸模式：会话行字色跟侧栏预设（本文件 .item 是独立哈希，Sider.module.css 的钉色规则够不到它）；
+   自动档回落明暗自动色，选中行同色仅加粗 */
+:global([data-sider-wallpaper]) .item,
+:global([data-sider-wallpaper]) .item.active {
+  color: var(--wp-sider-text, #0b1220) !important;
+}
+
+:global([data-sider-wallpaper-dark]) .item,
+:global([data-sider-wallpaper-dark]) .item.active {
+  color: var(--wp-sider-text, #ffffff) !important;
 }

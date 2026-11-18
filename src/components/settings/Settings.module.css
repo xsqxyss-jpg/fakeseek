@@ -13,6 +13,12 @@
   color: var(--dsw-alias-label-primary);
 }
 
+/* 标题容器撑满整行，配合 .pageTitle 的居中对齐 */
+.dialogTitle {
+  flex: 1;
+  min-width: 0;
+}
+
 .navigation {
   display: flex;
   flex-direction: column;
@@ -429,6 +435,251 @@
   width: 100%;
 }
 
+/* ---------- 官方 App 风格设置页 ---------- */
+
+.pageTitle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 36px;
+}
+
+.pageTitleText {
+  font-weight: 600;
+}
+
+.backButton {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--wp-settings-ink, var(--dsw-alias-label-primary));
+  cursor: pointer;
+}
+
+.groupLabel {
+  flex-shrink: 0;
+  margin: 18px 4px 8px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+
+  &:first-child {
+    margin-top: 4px;
+  }
+}
+
+.card {
+  flex-shrink: 0;
+  box-sizing: border-box;
+  padding: 2px 16px;
+  border-radius: 18px;
+  background-color: var(--dsw-alias-bg-base);
+}
+
+.navRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 54px;
+  padding: 10px 0;
+  border: none;
+  background: none;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 15px;
+  line-height: 22px;
+  text-align: left;
+  cursor: pointer;
+
+  & + & ,
+  & + .navRowStatic,
+  .cell + & {
+    box-shadow: inset 0 1px 0 0 var(--dsw-alias-border-l2-darkmode-thin);
+  }
+}
+
+.navRowStatic {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 54px;
+  padding: 10px 0;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary);
+
+  & + .navRow {
+    box-shadow: inset 0 1px 0 0 var(--dsw-alias-border-l2-darkmode-thin);
+  }
+}
+
+.navRowIcon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  color: var(--dsw-alias-label-primary);
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.navRowLabel {
+  flex: 1;
+  min-width: 0;
+}
+
+.navRowValue {
+  flex-shrink: 0;
+  max-width: 45%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.navRowChevron {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--dsw-alias-label-caption);
+}
+
+.inlineSelect {
+  flex-shrink: 0;
+  max-width: 55%;
+}
+
+.helpHero {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 4px;
+}
+
+.helpBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px 0;
+}
+
+.helpTitle {
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.helpSteps {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 14px;
+  line-height: 24px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.helpText {
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.termsPara {
+  margin: 0 0 12px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+/* 外链行：官方渠道跳转，带描述与 ↗ */
+.linkRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 15px;
+  line-height: 22px;
+  text-decoration: none;
+  cursor: pointer;
+
+  & + & {
+    box-shadow: inset 0 1px 0 0 var(--dsw-alias-border-l2-darkmode-thin);
+  }
+
+  &:hover .navRowLabel {
+    color: var(--dsw-alias-brand-text);
+  }
+}
+
+.linkRowText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.linkRowDesc {
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* 带长描述的档位行：描述占整行，选择器换行到下方右对齐，避免文字被挤成窄柱 */
+.stackCell {
+  flex-wrap: wrap;
+}
+
+.stackCell .text {
+  flex: 1 0 100%;
+  padding-right: 0;
+}
+
+/* 官方风格下子页卡片内的分隔线沿用 .cell 规则；首页整页浅灰底 */
+@media not all and (min-width: 768px) {
+  .dialog {
+    align-self: stretch;
+    height: 100%;
+    max-height: none;
+    border-radius: 0;
+    box-sizing: border-box;
+    /* 全屏设置页同样要让开状态栏与导航条：原生注入的 --safe-* 变量 */
+    padding: calc(12px + var(--safe-top, 0px)) 16px calc(16px + var(--safe-bottom, 0px));
+    background-color: var(--dsw-specific-sidebar-fill);
+  }
+
+  .content {
+    margin-right: -16px;
+    padding: 0 16px;
+  }
+}
+
 @media not all and (min-width: 768px) {
   .deleteActions > button {
     min-height: 44px;
@@ -439,4 +690,94 @@
     overflow-wrap: anywhere;
     max-width: 100%;
   }
+}
+
+/* ---------- 设置页壁纸：字体直接落上去，按壁纸明暗切字色 ---------- */
+@media not all and (min-width: 768px) {
+  .dialog {
+    background-image: var(--settings-wallpaper, none);
+    background-size: cover;
+    background-position: center;
+  }
+}
+
+@media not all and (min-width: 768px) {
+/* 暗壁纸 → 浅字；字色统一收敛到 --wp-settings-ink，明/暗/预设三态在变量定义处决定 */
+[data-settings-wallpaper-dark] .dialog {
+  --wp-settings-ink: var(--wp-settings-text, rgba(248, 250, 252, 0.95));
+  background-color: color-mix(
+    in srgb,
+    var(--wp-glass-base) calc(var(--wp-glass-floor) * 100%),
+    rgba(21, 21, 23, 0.45) calc((1 - var(--wp-glass-floor)) * 100%)
+  );
+}
+
+/* 用户白字预设 → 底色强制深磨砂（白字必须落在深底上，跟壁纸亮暗无关）；
+   data-wp-text-light-settings 在 <html> 上，需 :global 跨文件引用 */
+:global([data-settings-wallpaper]:not([data-wp-text-light-settings])) .dialog {
+  background-color: rgba(21, 21, 23, 0.45) !important;
+}
+
+/* 白字预设：卡片同步换深磨砂，行文字才有落点 */
+:global([data-settings-wallpaper]:not([data-wp-text-light-settings])) .card {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(14px);
+}
+
+/* 用户黑字预设 → 底色强制浅磨砂 */
+:global([data-settings-wallpaper][data-wp-text-light-settings]) .dialog {
+  background-color: rgba(255, 255, 255, 0.45) !important;
+}
+
+[data-settings-wallpaper-dark] .dialog .card {
+  background-color: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+}
+
+/* 亮壁纸 → 深字（自动档），卡片保持浅色底 */
+[data-settings-wallpaper]:not([data-settings-wallpaper-dark]) .dialog {
+  --wp-settings-ink: var(--wp-settings-text, var(--dsw-alias-label-primary));
+}
+
+/* 设置页全部文本消费统一字色变量（首页+子页+帮助/条款/数据页），!important 钉死明暗分支 */
+[data-settings-wallpaper] .dialog .dialogMain,
+[data-settings-wallpaper] .dialog .navItem,
+[data-settings-wallpaper] .dialog .cell,
+[data-settings-wallpaper] .dialog .themeOption,
+[data-settings-wallpaper] .dialog .importConfirmText,
+[data-settings-wallpaper] .dialog .pageTitle,
+[data-settings-wallpaper] .dialog .backButton,
+[data-settings-wallpaper] .dialog .groupLabel,
+[data-settings-wallpaper] .dialog .navRow,
+[data-settings-wallpaper] .dialog .navRowStatic,
+[data-settings-wallpaper] .dialog .navRowIcon,
+[data-settings-wallpaper] .dialog .navRowLabel,
+[data-settings-wallpaper] .dialog .navRowValue,
+[data-settings-wallpaper] .dialog .navRowChevron,
+[data-settings-wallpaper] .dialog .helpTitle,
+[data-settings-wallpaper] .dialog .helpSteps,
+[data-settings-wallpaper] .dialog .helpText,
+[data-settings-wallpaper] .dialog .linkRow,
+[data-settings-wallpaper] .dialog .description,
+[data-settings-wallpaper] .dialog .apiKeyMask {
+  color: var(--wp-settings-ink, var(--dsw-alias-label-primary)) !important;
+}
+
+/* 次要文字保留灰阶层次：从 ink 清单移出的四类，在 ink 基础上压透明度 */
+[data-settings-wallpaper] .dialog .navRowValue,
+[data-settings-wallpaper] .dialog .navRowChevron,
+[data-settings-wallpaper] .dialog .groupLabel {
+  color: color-mix(in srgb, var(--wp-settings-ink, var(--dsw-alias-label-primary)) 62%, transparent) !important;
+}
+
+[data-settings-wallpaper] .dialog .helpSteps,
+[data-settings-wallpaper] .dialog .helpText,
+[data-settings-wallpaper] .dialog .linkRowDesc {
+  color: color-mix(in srgb, var(--wp-settings-ink, var(--dsw-alias-label-primary)) 72%, transparent) !important;
+}
+
+/* 控件不吃字色预设：Select 触发器（Language 胶囊等）自带底色，字固定深色可读 */
+[data-settings-wallpaper] .dialog .inlineSelect {
+  color: var(--dsw-alias-label-primary) !important;
+}
 }

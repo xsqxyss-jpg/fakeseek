@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">fakeseek</string>
+    <string name="title_activity_main">fakeseek</string>
+    <string name="package_name">app.fakeseek.chat</string>
+    <string name="custom_url_scheme">app.fakeseek.chat</string>
+</resources>

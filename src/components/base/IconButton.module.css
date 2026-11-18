@@ -54,3 +54,38 @@
 .primary {
   color: var(--dsw-alias-label-primary);
 }
+
+/* 壁纸模式（暗壁纸）：顶栏图标一律浅色，压过 tone 的灰阶 */
+:global([data-app-wallpaper-dark]) .button {
+  color: rgba(248, 250, 252, 0.95);
+
+  &.tertiary {
+    color: rgba(248, 250, 252, 0.8);
+  }
+}
+
+/* 壁纸模式（亮壁纸）：深色图标 */
+:global([data-app-wallpaper]):not([data-app-wallpaper-dark]) .button {
+  color: rgba(17, 24, 39, 0.92);
+
+  &.tertiary {
+    color: rgba(17, 24, 39, 0.8);
+  }
+}
+
+/* 壁纸模式：用户预设字色赢过明暗自动（聊天区顶栏/操作图标统一跟字色） */
+:global([data-app-wallpaper]) .button {
+  color: var(--wp-chat-text, rgba(17, 24, 39, 0.92)) !important;
+}
+
+:global([data-app-wallpaper]) .button.tertiary {
+  color: var(--wp-chat-text, rgba(17, 24, 39, 0.8)) !important;
+}
+
+:global([data-app-wallpaper-dark]) .button {
+  color: var(--wp-chat-text, rgba(248, 250, 252, 0.95)) !important;
+}
+
+:global([data-app-wallpaper-dark]) .button.tertiary {
+  color: var(--wp-chat-text, rgba(248, 250, 252, 0.8)) !important;
+}

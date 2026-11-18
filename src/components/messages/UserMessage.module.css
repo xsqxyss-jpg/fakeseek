@@ -13,6 +13,24 @@
   }
 }
 
+.body {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 0;
+  max-width: calc(100% - 48px);
+}
+
 .files {
   display: flex;
   flex-wrap: wrap;
@@ -28,21 +46,34 @@
 }
 
 .bubble {
-  max-width: calc(100% - 88px);
+  max-width: 100%;
   box-sizing: border-box;
   padding: 10px 16px;
   border-radius: 22px;
-  font-size: 16px;
-  line-height: 24px;
+  font-size: var(--app-font-size, 16px);
+  line-height: 1.5;
   color: var(--dsw-alias-label-primary);
   background-color: var(--dsw-specific-bubble);
   white-space: pre-wrap;
   word-break: break-word;
 }
 
+/* 壁纸模式：用户消息也去气泡，右对齐直接落壁纸上（字色走全局自定义变量） */
+:global([data-app-wallpaper]) .bubble {
+  background: none;
+  backdrop-filter: none;
+  color: var(--wp-user-text, var(--dsw-alias-label-primary));
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
+}
+
+/* 自动档暗壁纸：白字（预设时让位给下方 !important 变量规则） */
+:global([data-app-wallpaper-dark]) .bubble {
+  color: rgba(248, 250, 252, 0.96);
+}
+
 @media not all and (min-width: 440px) {
   .bubble {
-    max-width: calc(100% - 68px);
+    max-width: 100%;
   }
 }
 
@@ -101,4 +132,12 @@
   justify-content: flex-end;
   gap: 8px;
   margin: 6px 10px 10px;
+}
+
+[data-app-wallpaper] .bubble {
+  color: var(--wp-user-text, var(--dsw-alias-label-primary)) !important;
+}
+
+[data-app-wallpaper-dark] .bubble {
+  color: var(--wp-user-text, rgba(248, 250, 252, 0.96)) !important;
 }

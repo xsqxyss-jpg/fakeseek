@@ -138,6 +138,39 @@ const hasFile = (body: CreateMessageRequest) =>
   )
 
 /**
+ * 非流式补全：压缩历史摘要等短请求用。与聊天同一端点同一鉴权，stream:false 返回完整 message。
+ * 失败抛 ApiError，由调用方决定降级行为。
+ */
+export const completeMessage = async (
+  apiKey: string,
+  body: CreateMessageRequest,
+  signal: AbortSignal
+): Promise<string> => {
+  const response = await request(`${ANTHROPIC_BASE_URL}/messages`, {
+    method: 'POST',
+    headers: {
+      ...anthropicHeaders(apiKey, false),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ ...body, stream: false }),
+    signal,
+  })
+  const payload: unknown = await response.json().catch(() => null)
+  if (
+    typeof payload !== 'object' ||
+    payload === null ||
+    !Array.isArray((payload as { content?: unknown }).content)
+  ) {
+    throw new ApiError('protocol', '')
+  }
+  return (payload as { content: { type: string; text?: string }[] }).content
+    .filter((block) => block.type === 'text' && typeof block.text === 'string')
+    .map((block) => block.text)
+    .join('')
+    .trim()
+}
+
+/**
  * POST /anthropic/v1/messages（stream: true），逐个产出流式事件，收到 message_stop 时结束。
  * ping、保活注释与无法解析的内容不产出；中止请求时抛出 signal 的 AbortError。
  */

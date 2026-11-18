@@ -16,6 +16,7 @@ import {
 } from './BranchSwitcher.js'
 import { MessageFile } from './MessageFile.js'
 import { CopyButton } from './CopyButton.js'
+import { Avatar } from './Avatar.js'
 import styles from './UserMessage.module.css'
 
 export const UserMessage = memo(function UserMessage({
@@ -62,75 +63,80 @@ export const UserMessage = memo(function UserMessage({
 
   return (
     <div className={clsx(styles.container, isFirst && styles.isFirst)}>
-      {message.files.length > 0 ? (
-        <div
-          className={clsx(
-            styles.files,
-            message.files.some((file) => !file.isImage) && styles.filesWithDocuments
-          )}
-        >
-          {message.files.map((file) => (
-            <MessageFile
-              key={file.id}
-              file={file}
-              onRetry={retryUploadId ? () => retryUpload(sessionId, retryUploadId) : null}
-            />
-          ))}
-        </div>
-      ) : null}
-      {editing ? (
-        <div className={styles.editor}>
-          <textarea
-            ref={textareaRef}
-            className={styles.textarea}
-            aria-label={t('editMessage')}
-            autoFocus
-            rows={1}
-            value={draft}
-            disabled={busy}
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.nativeEvent.isComposing) {
-                return
-              }
-              if (event.key === 'Escape') {
-                setEditing(false)
-              } else if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !isMobile) {
-                event.preventDefault()
-                sendEdit()
-              }
-            }}
-          />
-          <div className={styles.editorActions}>
-            <Button size="s" variant="outlined" onClick={() => setEditing(false)}>
-              {t('cancel')}
-            </Button>
-            <Button size="s" disabled={!canSend} onClick={sendEdit}>
-              {t('send')}
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <>
-          {message.content ? <div className={styles.bubble}>{message.content}</div> : null}
-          <div className={styles.bottom}>
-            <div className={clsx(styles.actions, isLast && styles.alwaysShow)}>
-              {message.content ? <CopyButton text={message.content} /> : null}
-              <IconButton
-                icon={<IconEditOutline16 />}
-                tooltip={t('editMessage')}
-                tooltipPlacement="bottom"
+      <div className={styles.body}>
+        <div className={styles.content}>
+          {message.files.length > 0 ? (
+            <div
+              className={clsx(
+                styles.files,
+                message.files.some((file) => !file.isImage) && styles.filesWithDocuments
+              )}
+            >
+              {message.files.map((file) => (
+                <MessageFile
+                  key={file.id}
+                  file={file}
+                  onRetry={retryUploadId ? () => retryUpload(sessionId, retryUploadId) : null}
+                />
+              ))}
+            </div>
+          ) : null}
+          {editing ? (
+            <div className={styles.editor}>
+              <textarea
+                ref={textareaRef}
+                className={styles.textarea}
+                aria-label={t('editMessage')}
+                autoFocus
+                rows={1}
+                value={draft}
                 disabled={busy}
-                onClick={() => {
-                  setDraft(message.content)
-                  setEditing(true)
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.nativeEvent.isComposing) {
+                    return
+                  }
+                  if (event.key === 'Escape') {
+                    setEditing(false)
+                  } else if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !isMobile) {
+                    event.preventDefault()
+                    sendEdit()
+                  }
                 }}
               />
+              <div className={styles.editorActions}>
+                <Button size="s" variant="outlined" onClick={() => setEditing(false)}>
+                  {t('cancel')}
+                </Button>
+                <Button size="s" disabled={!canSend} onClick={sendEdit}>
+                  {t('send')}
+                </Button>
+              </div>
             </div>
-            <BranchSwitcher versions={versions} disabled={busy} onSelect={onSelectVersion} />
-          </div>
-        </>
-      )}
+          ) : (
+            <>
+              {message.content ? <div className={styles.bubble}>{message.content}</div> : null}
+              <div className={styles.bottom}>
+                <div className={clsx(styles.actions, isLast && styles.alwaysShow)}>
+                  {message.content ? <CopyButton text={message.content} /> : null}
+                  <IconButton
+                    icon={<IconEditOutline16 />}
+                    tooltip={t('editMessage')}
+                    tooltipPlacement="bottom"
+                    disabled={busy}
+                    onClick={() => {
+                      setDraft(message.content)
+                      setEditing(true)
+                    }}
+                  />
+                </div>
+                <BranchSwitcher versions={versions} disabled={busy} onSelect={onSelectVersion} />
+              </div>
+            </>
+          )}
+        </div>
+        <Avatar role="user" />
+      </div>
     </div>
   )
 })

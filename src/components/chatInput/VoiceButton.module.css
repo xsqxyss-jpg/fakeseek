@@ -21,8 +21,8 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   border: none;
   border-radius: 50%;
@@ -44,6 +44,47 @@
 
   &:focus-visible {
     box-shadow: 0 0 0 2px var(--dsw-alias-button-primary-fill);
+  }
+}
+
+/* 壁纸模式：声波钮跟输入卡其他圆钮同色（深卡白钮、浅卡深钮），
+   否则 label-primary 在深磨砂上是黑色，格格不入 */
+:global([data-app-wallpaper]:not([data-wp-glass-light])) .button {
+  color: rgba(248, 250, 252, 0.95) !important;
+}
+
+:global([data-app-wallpaper][data-wp-glass-light]) .button {
+  color: rgba(17, 24, 39, 0.88) !important;
+}
+
+/* 录音读秒跟玻璃卡明暗（独立哈希文件，必须自带规则） */
+:global([data-app-wallpaper]:not([data-wp-glass-light])) .timer {
+  color: rgba(248, 250, 252, 0.75) !important;
+}
+
+:global([data-app-wallpaper][data-wp-glass-light]) .timer {
+  color: rgba(17, 24, 39, 0.6) !important;
+}
+
+/* 空闲态：官方风格描边圆 + 点 + 声波弧 */
+.idleCircle {
+  display: flex;
+
+  svg {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+@media not all and (min-width: 768px) {
+  .button {
+    width: 32px;
+    height: 32px;
+  }
+
+  .idleCircle svg {
+    width: 26px;
+    height: 26px;
   }
 }
 

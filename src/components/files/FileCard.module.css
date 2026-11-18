@@ -97,6 +97,29 @@
   color: var(--dsw-alias-label-tertiary);
 }
 
+/* 壁纸模式（用户消息附件卡）：卡改玻璃质感、文字跟聊天区字色 */
+:global([data-app-wallpaper]) .card {
+  background-color: rgba(255, 255, 255, 0.18) !important;
+  backdrop-filter: blur(10px);
+  border-color: transparent !important;
+}
+
+:global([data-app-wallpaper]) .icon {
+  color: var(--wp-chat-text, var(--dsw-alias-label-tertiary)) !important;
+}
+
+:global([data-app-wallpaper]) .caption {
+  color: var(--wp-chat-text, var(--dsw-alias-label-primary)) !important;
+}
+
+:global([data-app-wallpaper]) .subCaption {
+  color: var(--wp-chat-text, var(--dsw-alias-label-tertiary)) !important;
+}
+
+:global([data-app-wallpaper]) .retry svg {
+  color: var(--wp-chat-text, var(--dsw-alias-label-secondary)) !important;
+}
+
 .remove {
   position: absolute;
   top: 4px;

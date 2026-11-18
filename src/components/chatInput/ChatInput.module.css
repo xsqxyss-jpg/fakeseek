@@ -330,3 +330,522 @@
     cursor: not-allowed;
   }
 }
+
+/* 官方 App 风格：⊕ 附件按钮为描边圆圈，与语音按钮成对靠右 */
+.attachButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+
+  svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+@media not all and (min-width: 768px) {
+  /* 输入卡：更圆的胶囊卡片，贴近官方 App 底部输入框 */
+  .wrapper {
+    border-radius: 26px;
+    border-color: transparent;
+    box-shadow:
+      0 2px 12px rgba(0, 0, 0, 0.06),
+      0 8px 32px rgba(72, 104, 178, 0.06);
+  }
+
+  .textarea,
+  .mirror {
+    font-size: var(--app-font-size, 16px);
+    padding-left: 18px;
+  }
+
+  .functionRow {
+    padding: 8px 12px 12px;
+    gap: 6px;
+  }
+
+  /* 官方胶囊：未选=白底细灰边，选中=浅蓝底蓝字无边；文字永不被折叠 */
+  .toggle {
+    height: 38px;
+    padding: 0 10px;
+    border-radius: 100px;
+    border-color: var(--dsw-alias-border-l2);
+    background-color: var(--dsw-alias-bg-base);
+    font-size: 14px;
+    gap: 4px;
+
+    &.selected {
+      background-color: var(--dsw-alias-button-ghost-active-fill);
+      color: var(--dsw-alias-brand-text);
+      border-color: transparent;
+    }
+  }
+
+  .toggleLabel {
+    display: inline !important;
+  }
+
+  .toggles {
+    flex: 0 1 auto;
+    gap: 6px;
+    overflow: visible;
+  }
+
+  .right {
+    gap: 4px;
+  }
+
+  .attachButton {
+    width: 32px;
+    height: 32px;
+
+    svg {
+      width: 26px;
+      height: 26px;
+    }
+  }
+
+  .sendButton {
+    margin-left: 2px;
+  }
+}
+
+/* 官方输入卡右侧「更多」钮：描边圆内三点，点开折叠面板 */
+.moreButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+
+  svg {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+.moreButtonOpen {
+  color: var(--dsw-alias-brand-text);
+}
+
+/* 更多面板：贴在输入卡上方，圆角卡片，可再次点按钮收起 */
+.morePanel {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 14px 16px;
+  border-top: 1px solid var(--dsw-alias-border-l2-darkmode-thin);
+  background-color: var(--dsw-alias-bg-base);
+  cursor: default;
+}
+
+.moreSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.moreSectionTitle {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.modelRow {
+  display: flex;
+  gap: 8px;
+}
+
+.modelOption {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 100px;
+  background-color: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: var(--dsw-alias-interactive-bg-hover);
+  }
+}
+
+.modelSelected {
+  border-color: transparent;
+  background-color: var(--dsw-alias-button-ghost-active-fill);
+  color: var(--dsw-alias-brand-text);
+  font-weight: 500;
+}
+
+.moreDivider {
+  height: 1px;
+  margin: 12px 0;
+  background-color: var(--dsw-alias-border-l2-darkmode-thin);
+}
+
+.moreStats {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.moreStatMain {
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.moreStatSub {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.moreLoading {
+  color: var(--dsw-alias-label-caption);
+}
+
+.moreHint {
+  font-size: 11.5px;
+  line-height: 17px;
+  color: var(--dsw-alias-label-caption);
+}
+
+/* 壁纸模式：「更多」面板内杂项文本跟玻璃明暗（moreHint/moreDivider 场景） */
+:global([data-app-wallpaper]:not([data-wp-glass-light])) .moreHint {
+  color: rgba(248, 250, 252, 0.65) !important;
+}
+
+:global([data-app-wallpaper][data-wp-glass-light]) .moreHint {
+  color: rgba(17, 24, 39, 0.55) !important;
+}
+
+/* ---------- 壁纸模式：输入卡毛玻璃（可读性下限配方，任何壁纸下对比度 ≥4.5:1） ---------- */
+:global([data-app-wallpaper]) .wrapper {
+  background: color-mix(
+    in srgb,
+    var(--wp-glass-base) calc(var(--wp-glass-floor) * 100%),
+    color-mix(in srgb, var(--dsw-alias-bg-base) 62%, transparent) calc((1 - var(--wp-glass-floor)) * 100%)
+  );
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-color: transparent;
+}
+
+
+:global([data-app-wallpaper-dark]) .textarea,
+:global([data-app-wallpaper-dark]) .mirror {
+  color: rgba(248, 250, 252, 0.95);
+}
+
+:global([data-app-wallpaper-dark]) .textarea::placeholder,
+:global([data-app-wallpaper-dark]) .mirror::placeholder {
+  color: rgba(248, 250, 252, 0.55);
+}
+
+/* （旧 v8 暗色 toggle/面板块已移除：与 v9 块重复且特异性相同靠顺序取胜，会盖掉浅玻璃修正；统一由 v9 暗色块+文末浅玻璃块接管） */
+
+/* 亮壁纸：输入卡浅玻璃、文字深色 */
+[data-app-wallpaper]:not([data-app-wallpaper-dark]) .wrapper {
+  background: rgba(255, 255, 255, 0.62);
+}
+
+[data-app-wallpaper]:not([data-app-wallpaper-dark]) .textarea::placeholder,
+[data-app-wallpaper]:not([data-app-wallpaper-dark]) .mirror::placeholder {
+  color: rgba(17, 24, 39, 0.5);
+}
+
+/* ---------- 暗壁纸：输入卡黑色磨砂、白字、白描按钮（参考 DSH 截图） ---------- */
+:global([data-app-wallpaper-dark]) .wrapper {
+  background: rgba(20, 24, 34, 0.55);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+}
+
+:global([data-app-wallpaper-dark]) .textarea,
+:global([data-app-wallpaper-dark]) .mirror {
+  color: rgba(248, 250, 252, 0.96);
+  caret-color: #fff;
+}
+
+:global([data-app-wallpaper-dark]) .textarea::placeholder {
+  color: rgba(248, 250, 252, 0.5);
+}
+
+/* 胶囊开关：透明底白描白字；选中态蓝底白字 */
+:global([data-app-wallpaper-dark]) .toggle {
+  background-color: transparent;
+  border: 1.2px solid rgba(248, 250, 252, 0.75);
+  color: rgba(248, 250, 252, 0.95);
+}
+
+:global([data-app-wallpaper-dark]) .toggle.selected {
+  background-color: var(--dsw-alias-button-ghost-active-fill);
+  border-color: transparent;
+  color: #fff;
+}
+
+/* 右侧圆形按钮：白描 */
+:global([data-app-wallpaper-dark]) .attachButton,
+:global([data-app-wallpaper-dark]) .moreButton {
+  background: none;
+  color: rgba(248, 250, 252, 0.95);
+}
+
+:global([data-app-wallpaper-dark]) .morePanel {
+  background-color: rgba(20, 24, 34, 0.82);
+  backdrop-filter: blur(22px);
+  border-top-color: rgba(255, 255, 255, 0.12);
+}
+
+:global([data-app-wallpaper-dark]) .morePanel .toggle {
+  background-color: transparent;
+  border: 1.2px solid rgba(248, 250, 252, 0.75);
+}
+
+:global([data-app-wallpaper-dark]) .morePanel .toggle.selected {
+  background-color: var(--dsw-alias-button-ghost-active-fill);
+  border-color: transparent;
+}
+
+:global([data-app-wallpaper-dark]) .moreSectionTitle,
+:global([data-app-wallpaper-dark]) .moreStatSub {
+  color: rgba(248, 250, 252, 0.65);
+}
+
+:global([data-app-wallpaper-dark]) .moreStatMain {
+  color: rgba(248, 250, 252, 0.95);
+}
+
+:global([data-app-wallpaper-dark]) .modelOption {
+  background-color: transparent;
+  border: 1.2px solid rgba(248, 250, 252, 0.6);
+  color: rgba(248, 250, 252, 0.92);
+}
+
+:global([data-app-wallpaper-dark]) .modelSelected {
+  background-color: var(--dsw-alias-button-ghost-active-fill);
+  border-color: transparent;
+  color: #fff;
+}
+
+/* 输入区自定义字色变量优先（自动档回落聊天区字色，保持旧联动） */
+:global([data-app-wallpaper]) .textarea,
+:global([data-app-wallpaper]) .mirror {
+  color: var(--wp-input-text, var(--wp-chat-text, var(--dsw-alias-label-primary)));
+}
+
+/* 用户自定义输入卡玻璃底色：设置即覆盖自动分支（含暗壁纸的黑色磨砂） */
+:global([data-app-wallpaper]) .wrapper {
+  background: var(--wp-input-glass, rgba(20, 24, 34, 0.55));
+}
+
+/* 玻璃底色未单独设置时跟聊天区字色：黑字=浅磨砂（App.tsx 按字色打属性） */
+:global([data-app-wallpaper][data-wp-glass-light]) .wrapper {
+  background: rgba(255, 255, 255, 0.62);
+}
+
+/* 自动档亮壁纸+黑字：占位符也换深色，避免浅字浅底 */
+:global([data-app-wallpaper][data-wp-glass-light]:not([data-app-wallpaper-dark])) .textarea::placeholder,
+:global([data-app-wallpaper][data-wp-glass-light]:not([data-app-wallpaper-dark])) .mirror::placeholder {
+  color: rgba(17, 24, 39, 0.5);
+}
+
+/* 浅玻璃上的控件与文字统一深色：条件只看 data-wp-glass-light（=磨砂卡明暗），
+   不再看壁纸明暗——亮壁纸+白字预设时卡是深磨砂，控件必须跟着白，否则黑字落黑卡 */
+:global([data-app-wallpaper][data-wp-glass-light]) .toggle {
+  background-color: transparent !important;
+  border-color: rgba(17, 24, 39, 0.28) !important;
+  color: rgba(17, 24, 39, 0.88) !important;
+}
+
+:global([data-app-wallpaper][data-wp-glass-light]) .toggle.selected {
+  background-color: var(--dsw-alias-button-ghost-active-fill) !important;
+  border-color: transparent !important;
+  color: var(--dsw-alias-brand-text) !important;
+}
+
+/* 深磨砂卡（白字）：胶囊白描白字 */
+:global([data-app-wallpaper]:not([data-wp-glass-light])) .toggle {
+  background-color: transparent !important;
+  border-color: rgba(248, 250, 252, 0.75) !important;
+  color: rgba(248, 250, 252, 0.95) !important;
+}
+
+:global([data-app-wallpaper]:not([data-wp-glass-light])) .toggle.selected {
+  background-color: var(--dsw-alias-button-ghost-active-fill) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+}
+
+:global([data-app-wallpaper][data-wp-glass-light]) .attachButton,
+:global([data-app-wallpaper][data-wp-glass-light]) .moreButton {
+  color: rgba(17, 24, 39, 0.88) !important;
+}
+
+:global([data-app-wallpaper]:not([data-wp-glass-light])) .attachButton,
+:global([data-app-wallpaper]:not([data-wp-glass-light])) .moreButton {
+  color: rgba(248, 250, 252, 0.95) !important;
+}
+
+/* 「更多」面板跟随玻璃明暗：浅玻璃配浅面板深字，深玻璃暗面板浅字 */
+:global([data-app-wallpaper][data-wp-glass-light]) .morePanel {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  border-top-color: rgba(17, 24, 39, 0.08) !important;
+}
+
+:global([data-app-wallpaper]:not([data-wp-glass-light])) .morePanel {
+  background-color: rgba(20, 24, 34, 0.82) !important;
+  border-top-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+:global([data-app-wallpaper][data-wp-glass-light]) .moreSectionTitle,
+:global([data-app-wallpaper][data-wp-glass-light]) .moreStatSub {
+  color: rgba(17, 24, 39, 0.55) !important;
+}
+
+:global([data-app-wallpaper]:not([data-wp-glass-light])) .moreSectionTitle,
+:global([data-app-wallpaper]:not([data-wp-glass-light])) .moreStatSub {
+  color: rgba(248, 250, 252, 0.65) !important;
+}
+
+:global([data-app-wallpaper][data-wp-glass-light]) .moreStatMain {
+  color: rgba(17, 24, 39, 0.92) !important;
+}
+
+:global([data-app-wallpaper]:not([data-wp-glass-light])) .moreStatMain {
+  color: rgba(248, 250, 252, 0.95) !important;
+}
+
+:global([data-app-wallpaper][data-wp-glass-light]) .modelOption {
+  background-color: transparent !important;
+  border-color: rgba(17, 24, 39, 0.25) !important;
+  color: rgba(17, 24, 39, 0.88) !important;
+}
+
+:global([data-app-wallpaper]:not([data-wp-glass-light])) .modelOption {
+  background-color: transparent !important;
+  border-color: rgba(248, 250, 252, 0.6) !important;
+  color: rgba(248, 250, 252, 0.92) !important;
+}
+
+:global([data-app-wallpaper][data-wp-glass-light]) .modelSelected {
+  background-color: var(--dsw-alias-button-ghost-active-fill) !important;
+  border-color: transparent !important;
+  color: var(--dsw-alias-brand-text) !important;
+}
+
+:global([data-app-wallpaper]:not([data-wp-glass-light])) .modelSelected {
+  background-color: var(--dsw-alias-button-ghost-active-fill) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+}
+
+:global([data-app-wallpaper]) .textarea,
+:global([data-app-wallpaper]) .mirror {
+  color: var(--wp-input-text, var(--wp-chat-text, rgba(17, 24, 39, 0.92))) !important;
+}
+
+/* 自动档暗壁纸：浅字（预设时变量非空，仍由上面的变量规则接管） */
+:global([data-app-wallpaper-dark]) .textarea,
+:global([data-app-wallpaper-dark]) .mirror {
+  color: var(--wp-input-text, var(--wp-chat-text, rgba(248, 250, 252, 0.96))) !important;
+}
+
+/* 玻璃跟磨砂面板明暗（字色自动+面板显式黑玻璃=深卡浅字、显式白玻璃=浅卡深字）：
+   fallback 按 data-wp-glass-light 分流，杜绝「自动字色+面板黑玻璃」时深字落深卡。
+   注意：light=true（浅卡）时字要深——需在暗壁纸分支之后用更高特异性覆盖 */
+:global([data-app-wallpaper][data-wp-glass-light]) .textarea,
+:global([data-app-wallpaper][data-wp-glass-light]) .mirror {
+  color: var(--wp-input-text, var(--wp-chat-text, rgba(17, 24, 39, 0.92))) !important;
+}
+
+:global([data-app-wallpaper]:not([data-wp-glass-light])) .textarea,
+:global([data-app-wallpaper]:not([data-wp-glass-light])) .mirror {
+  color: var(--wp-input-text, var(--wp-chat-text, rgba(248, 250, 252, 0.96))) !important;
+}
+
+/* ---------- 占位符跟字色走：预设字色非空时占位符用同色半透明，杜绝「正文白字占位黑字」。
+   !important 钉死：亮壁纸自动占位规则（:not 长链）特异性更高，不加会翻盘。
+   自动档（变量为空）回落 label-caption 且不透明度还原 1，不吃 .55 洗白 ---------- */
+:global([data-app-wallpaper]) .textarea::placeholder,
+:global([data-app-wallpaper]) .mirror::placeholder {
+  color: var(--wp-input-text, var(--wp-chat-text, var(--dsw-alias-label-caption))) !important;
+}
+
+:global([data-app-wallpaper]) .textarea:not(:placeholder-shown)::placeholder,
+:global([data-app-wallpaper]) .mirror:not(:placeholder-shown)::placeholder {
+  opacity: 0.55 !important;
+}
+
+/* 自动档占位符保持原 caption 色全不透明 */
+:global([data-app-wallpaper]) .textarea::placeholder,
+:global([data-app-wallpaper]) .mirror::placeholder {
+  opacity: 1 !important;
+}
+
+/* 深磨砂卡（自动字色+面板黑玻璃）：占位符浅色 */
+:global([data-app-wallpaper]:not([data-wp-glass-light])) .textarea::placeholder,
+:global([data-app-wallpaper]:not([data-wp-glass-light])) .mirror::placeholder {
+  color: var(--wp-input-text, var(--wp-chat-text, rgba(248, 250, 252, 0.55))) !important;
+}
+
+/* 浅磨砂卡（自动字色+面板白玻璃）：占位符深色 */
+:global([data-app-wallpaper][data-wp-glass-light]) .textarea::placeholder,
+:global([data-app-wallpaper][data-wp-glass-light]) .mirror::placeholder {
+  color: var(--wp-input-text, var(--wp-chat-text, rgba(17, 24, 39, 0.5))) !important;
+}
+
+:global([data-app-wallpaper]) .wrapper {
+  background: var(--wp-input-glass, rgba(255, 255, 255, 0.62)) !important;
+}
+
+/* 自动档暗壁纸：深磨砂（预设玻璃色非空时让位给变量） */
+:global([data-app-wallpaper-dark]) .wrapper {
+  background: var(--wp-input-glass, rgba(20, 24, 34, 0.55)) !important;
+}
+
+/* 字色优先（最高优先级）：用户选了字色（黑=浅磨砂、白=深磨砂）时，
+   磨砂面板的显式值被压制——var() 留空 fallback，显式玻璃值不进入计算 */
+:global([data-app-wallpaper][data-wp-user-text-priority]) .wrapper {
+  background: var(--wp-input-glass, rgba(255, 255, 255, 0.62)) !important;
+}
+
+/* 未单独设玻璃色时跟聊天区字色：黑字=浅磨砂 */
+:global([data-app-wallpaper][data-wp-glass-light]) .wrapper {
+  background: rgba(255, 255, 255, 0.62) !important;
+}
+
+/* 白字=深磨砂（与 light 标记互斥，黑字走上一条） */
+:global([data-app-wallpaper]:not([data-wp-glass-light])) .wrapper {
+  background: rgba(20, 24, 34, 0.55) !important;
+}

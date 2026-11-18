@@ -87,6 +87,10 @@ export const toggleReadAloud = (
   if (reading === messageId) {
     return
   }
+  // 顶栏喇叭静音时不出声，也不发 TTS 请求。
+  if (useSettings.getState().voiceMuted) {
+    return
+  }
   const controller = new AbortController()
   const context = new AudioContext({ sampleRate: TTS_SAMPLE_RATE })
   current = { controller, context }

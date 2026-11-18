@@ -1,0 +1,209 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 0;
+}
+
+.label {
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--wp-settings-ink, var(--dsw-alias-label-primary));
+}
+
+.description {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--wp-settings-ink, var(--dsw-alias-label-tertiary));
+}
+
+.slots {
+  display: flex;
+  gap: 32px;
+  margin-top: 8px;
+}
+
+.slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  overflow: hidden;
+  user-select: none;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.userFallback {
+  background-color: var(--dsw-alias-brand-primary);
+  color: var(--dsw-alias-label-primary-foreground);
+}
+
+.assistantFallback {
+  background-color: var(--dsw-alias-button-contrast-fill);
+  color: var(--dsw-alias-label-primary-inverted);
+}
+
+.slotLabel {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--wp-settings-ink, var(--dsw-alias-label-secondary));
+}
+
+.reset {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-brand-text);
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+/* 昵称输入框 */
+.nicknameInput {
+  box-sizing: border-box;
+  width: 100%;
+  height: 42px;
+  margin: 8px 0 14px;
+  padding: 0 14px;
+  border: 1px solid var(--wp-settings-ink, var(--dsw-alias-border-l2));
+  border-radius: 12px;
+  background-color: rgba(255, 255, 255, 0.14);
+  color: var(--wp-settings-ink, var(--dsw-alias-label-primary));
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s ease;
+
+  &:focus {
+    border-color: var(--wp-settings-ink, var(--dsw-alias-brand-primary));
+  }
+
+  &::placeholder {
+    color: var(--wp-settings-ink, var(--dsw-alias-label-caption));
+    opacity: 0.6;
+  }
+}
+
+/* ---------- 三张壁纸槽位 ---------- */
+.wallpaperBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 14px;
+}
+
+.wallpaperLabel {
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--wp-settings-ink, var(--dsw-alias-label-primary));
+}
+
+/* 壁纸预览（大槽位）：与头像圆片区分开 */
+.wpPreview {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 110px;
+  margin-top: 8px;
+  padding: 0;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 16px;
+  background-color: var(--dsw-specific-sidebar-fill);
+  background-size: cover;
+  background-position: center;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.previewEmpty {
+  font-size: 13px;
+  color: var(--wp-settings-ink, var(--dsw-alias-label-caption));
+}
+
+.previewAction {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 4px 12px;
+  border-radius: 100px;
+  background-color: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 12px;
+  line-height: 18px;
+  backdrop-filter: blur(4px);
+}
+
+/* 槽位内的字色预设行 */
+.slotTextRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.slotTextLabel {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--wp-settings-ink, var(--dsw-alias-label-secondary));
+}
+
+.slotChips {
+  display: flex;
+  gap: 6px;
+}
+
+.slotChip {
+  min-width: 44px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 100px;
+  background-color: transparent;
+  color: var(--wp-settings-ink, var(--dsw-alias-label-primary));
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.slotChipOn {
+  border-color: transparent;
+  background-color: var(--dsw-alias-button-ghost-active-fill);
+  color: var(--dsw-alias-brand-text);
+  font-weight: 500;
+}
+
+@media not all and (min-width: 768px) {
+/* 壁纸设置页：选中胶囊是控件，不吃字色预设——深面板浅蓝底深蓝字、浅面板原样 */
+:global([data-settings-wallpaper]:not([data-wp-text-light-settings])) .slotChipOn {
+  background-color: var(--dsw-static-blue-900, #1c2d5a) !important;
+  color: var(--dsw-static-blue-50, #ebf2ff) !important;
+}
+}

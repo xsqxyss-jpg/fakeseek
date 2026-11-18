@@ -34,8 +34,7 @@
 
 .shimmer {
   color: transparent;
-  background: linear-gradient(
-      90deg,
+  background: linear-gradient(      90deg,
       var(--dsw-alias-label-secondary) 0%,
       var(--dsw-alias-label-secondary) 40%,
       var(--dsw-alias-label-caption) 50%,
@@ -313,4 +312,40 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 第一行：头像 + 思考标题并排；正文不受头像影响，仍顶左 */
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.titleAvatar {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.titleRow .title {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 没有思考行时，头像单独占一行顶部 */
+.leadingOnly {
+  display: flex;
+  margin-bottom: 6px;
+}
+
+/* 壁纸模式：思考区标题/停止图标跟聊天区字色（预设优先，自动档回落明暗自动色） */
+:global([data-app-wallpaper]) .title {
+  color: var(--wp-chat-text, var(--dsw-alias-label-secondary)) !important;
+}
+
+:global([data-app-wallpaper]) .title:hover {
+  color: var(--wp-chat-text, var(--dsw-alias-label-primary)) !important;
+}
+
+:global([data-app-wallpaper]) .stoppedIcon {
+  color: var(--wp-chat-text, var(--dsw-alias-label-tertiary)) !important;
 }

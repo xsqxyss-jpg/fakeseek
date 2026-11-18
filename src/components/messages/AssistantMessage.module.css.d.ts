@@ -1,5 +1,7 @@
 declare const styles: {
   readonly "message": string;
+  readonly "body": string;
+  readonly "content": string;
   readonly "actions": string;
   readonly "waiting": string;
   readonly "waitingDot": string;
@@ -13,4 +15,3 @@ declare const styles: {
   readonly "summaryActive": string;
 };
 export = styles;
-

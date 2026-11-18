@@ -41,6 +41,17 @@ button.image {
   color: var(--dsw-alias-label-secondary);
 }
 
+/* 壁纸模式：图片占位卡玻璃化、失败图标跟聊天区字色 */
+:global([data-app-wallpaper]) .image {
+  background-color: rgba(255, 255, 255, 0.18) !important;
+  border-color: transparent !important;
+  backdrop-filter: blur(10px);
+}
+
+:global([data-app-wallpaper]) .failedIcon {
+  color: var(--wp-chat-text, var(--dsw-alias-label-secondary)) !important;
+}
+
 .retryImage {
   border-color: var(--dsw-alias-state-error-primary);
 }

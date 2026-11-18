@@ -1,0 +1,188 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.preview {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 4px 24px;
+  line-height: 1.6;
+  color: var(--wp-settings-ink, var(--dsw-alias-label-primary));
+}
+
+.previewBubbleRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1.4em;
+}
+
+.previewBubble {
+  max-width: 80%;
+  padding: 0.6em 1em;
+  border-radius: 1.3em;
+  background-color: var(--dsw-specific-bubble);
+  color: var(--dsw-alias-label-primary);
+  font-weight: 500;
+}
+
+.previewText {
+  margin: 0 0 1.2em;
+  font-weight: 500;
+}
+
+.controls {
+  flex-shrink: 0;
+  margin: 0 -16px;
+  padding: 18px 24px calc(20px + env(safe-area-inset-bottom));
+  border-radius: 24px 24px 0 0;
+  background-color: var(--dsw-alias-bg-base);
+  box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.05);
+}
+
+.followRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.followLabel {
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 500;
+  color: var(--wp-settings-ink, var(--dsw-alias-label-primary));
+}
+
+/* 官方风格绿色开关 */
+.switch {
+  position: relative;
+  width: 52px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 100px;
+  background-color: var(--dsw-alias-border-l2);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.switchOn {
+  background-color: #34c759;
+}
+
+.switchKnob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.switchOn .switchKnob {
+  transform: translateX(22px);
+}
+
+.sliderBlock {
+  transition: opacity 0.2s ease;
+}
+
+.sliderDisabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.sliderLabels {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  color: var(--wp-settings-ink, var(--dsw-alias-label-primary));
+}
+
+.smallA {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.standardLabel {
+  font-size: 14px;
+  color: var(--wp-settings-ink, var(--dsw-alias-label-secondary));
+}
+
+.bigA {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.slider {
+  display: block;
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+
+  &::-webkit-slider-runnable-track {
+    height: 3px;
+    border-radius: 2px;
+    background-color: var(--dsw-alias-border-l2);
+  }
+
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 26px;
+    height: 26px;
+    margin-top: -11.5px;
+    border: none;
+    border-radius: 50%;
+    background-color: #fff;
+    box-shadow:
+      0 1px 4px rgba(0, 0, 0, 0.25),
+      0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+
+  &::-moz-range-track {
+    height: 3px;
+    border-radius: 2px;
+    background-color: var(--dsw-alias-border-l2);
+  }
+
+  &::-moz-range-thumb {
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 50%;
+    background-color: #fff;
+    box-shadow:
+      0 1px 4px rgba(0, 0, 0, 0.25),
+      0 4px 12px rgba(0, 0, 0, 0.12);
+  }
+}
+
+.ticks {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 12px;
+  margin-top: 2px;
+  pointer-events: none;
+}
+
+.tick {
+  width: 2px;
+  height: 8px;
+  border-radius: 1px;
+  background-color: var(--dsw-alias-border-l2);
+}
+
+.tickActive {
+  background-color: var(--dsw-alias-brand-primary);
+}

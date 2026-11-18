@@ -1,0 +1,124 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.label {
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--wp-settings-ink, var(--dsw-alias-label-primary));
+}
+
+.badge {
+  flex-shrink: 0;
+  padding: 1px 10px;
+  border-radius: 100px;
+  font-size: 11px;
+  line-height: 18px;
+  color: var(--wp-settings-ink, var(--dsw-alias-label-tertiary));
+  background-color: var(--dsw-alias-interactive-bg-hover);
+}
+
+.badgeCustom {
+  color: var(--dsw-alias-brand-text);
+  background-color: var(--dsw-alias-button-ghost-active-fill);
+}
+
+.description {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--wp-settings-ink, var(--dsw-alias-label-tertiary));
+}
+
+.textarea {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 14px;
+  background-color: var(--dsw-specific-input-major);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 13.5px;
+  line-height: 21px;
+  resize: vertical;
+  min-height: 110px;
+  max-height: 320px;
+  outline: none;
+  transition: border-color 0.2s ease;
+  scrollbar-width: thin;
+  scrollbar-color: var(--dsw-alias-border-l2) transparent;
+
+  &:focus {
+    border-color: var(--dsw-alias-brand-primary);
+  }
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.counter {
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--wp-settings-ink, var(--dsw-alias-label-caption));
+  font-variant-numeric: tabular-nums;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reset {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-brand-text);
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.save {
+  height: 30px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 100px;
+  background-color: var(--dsw-alias-button-primary-fill);
+  color: var(--dsw-static-neutral-bluish-00);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+}
+
+.notice {
+  font-size: 11.5px;
+  line-height: 17px;
+  color: var(--wp-settings-ink, var(--dsw-alias-label-caption));
+}

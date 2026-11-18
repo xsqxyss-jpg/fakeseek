@@ -22,6 +22,7 @@ import {
   type MessageVersions,
   type SelectMessageVersion,
 } from './BranchSwitcher.js'
+import { Avatar } from './Avatar.js'
 import styles from './AssistantMessage.module.css'
 
 const TOP_UP_URL = 'https://platform.deepseek.com/top_up'
@@ -58,121 +59,127 @@ export const AssistantMessage = memo(function AssistantMessage({
   const summaryEntry = `${message.id}-summary`
   return (
     <div className={styles.message}>
-      {refused ? null : (
-        <ReplyArea
-          message={message}
-          view={view}
-          streaming={streaming}
-          hasResponse={!!responseText}
-        />
-      )}
-      {answer ? (
-        <Markdown
-          className="ds-assistant-message-main-content"
-          content={answer.markdown}
-          loading={streaming}
-          cacheKey={message.id}
-          disableLink={false}
-          sources={view.sources}
-        />
-      ) : null}
-      {waiting ? (
-        <div className={styles.waiting}>
-          {[0, 1, 2].map((index) => (
-            <span key={index} className={styles.waitingDot} />
-          ))}
-        </div>
-      ) : null}
-      {notice?.presentation === 'response' ? (
-        <Markdown
-          className="ds-assistant-message-main-content"
-          content={notice.text}
-          loading={false}
-          cacheKey={`${message.id}-template`}
-          disableLink={false}
-        />
-      ) : notice ? (
-        <div className={styles.notice}>
-          <IconWarningOutline16 />
-          <span>
-            {notice.text}
-            {notice.action === 'apiKey' ? (
-              <>
-                {' '}
-                <button
-                  type="button"
-                  className={styles.noticeAction}
-                  onClick={() => openSettings('data')}
-                >
-                  {t('changeApiKey')}
-                </button>
-              </>
-            ) : null}
-            {notice.action === 'topUp' ? (
-              <>
-                {' '}
-                <a
-                  className={styles.noticeAction}
-                  href={TOP_UP_URL}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {t('topUp')}
-                </a>
-              </>
-            ) : null}
-          </span>
-        </div>
-      ) : null}
-      {!streaming && !refused && view.searchResults.length > 0 ? (
-        <div
-          className={clsx(styles.summary, panelEntry === summaryEntry && styles.summaryActive)}
-          onClick={() => toggleSearchPanel(summaryEntry, view.searchResults)}
-        >
-          <SiteThumbnails sources={view.searchResults} />
-          <span>
-            {t(
-              view.searchResults.length === 1 ? 'messageSearchSummary' : 'messageSearchSummaries',
-              { count: view.searchResults.length }
-            )}
-          </span>
-        </div>
-      ) : null}
-      {streaming ? null : (
-        <div className={styles.bottom}>
-          <BranchSwitcher versions={versions} disabled={busy} onSelect={onSelectVersion} />
-          <div className={clsx(styles.actions, isLast && styles.alwaysShow)}>
-            {copyText ? <CopyButton text={copyText} /> : null}
-            {responseText && !refused ? (
-              <ReadAloudButton messageId={message.id} text={responseText} />
-            ) : null}
-            <IconButton
-              icon={<IconRefreshOutline16 />}
-              tooltip={t('regenerate')}
-              tooltipPlacement="bottom"
-              disabled={busy || refused}
-              onClick={() => {
-                stopReadAloud()
-                regenerateReply(sessionId, message.id)
-              }}
+      {/* 头像只出现在第一行（思考/状态行）左侧；正文与其余内容照常顶到左边，跟没有头像时一致 */}
+      <div className={styles.body}>
+        <div className={styles.content}>
+          {refused ? null : (
+            <ReplyArea
+              message={message}
+              view={view}
+              streaming={streaming}
+              hasResponse={!!responseText}
+              leading={<Avatar role="assistant" />}
             />
-          </div>
-          {isLast && canContinueReply(message) ? (
-            <Button
-              variant="outlined"
-              size="s"
-              className={styles.continueButton}
-              disabled={busy}
-              onClick={() => {
-                stopReadAloud()
-                continueReply(sessionId, message.id)
-              }}
-            >
-              {t('continueGenerating')}
-            </Button>
+          )}
+          {answer ? (
+            <Markdown
+              className="ds-assistant-message-main-content"
+              content={answer.markdown}
+              loading={streaming}
+              cacheKey={message.id}
+              disableLink={false}
+              sources={view.sources}
+            />
           ) : null}
+          {waiting ? (
+            <div className={styles.waiting}>
+              {[0, 1, 2].map((index) => (
+                <span key={index} className={styles.waitingDot} />
+              ))}
+            </div>
+          ) : null}
+          {notice?.presentation === 'response' ? (
+            <Markdown
+              className="ds-assistant-message-main-content"
+              content={notice.text}
+              loading={false}
+              cacheKey={`${message.id}-template`}
+              disableLink={false}
+            />
+          ) : notice ? (
+            <div className={styles.notice}>
+              <IconWarningOutline16 />
+              <span>
+                {notice.text}
+                {notice.action === 'apiKey' ? (
+                  <>
+                    {' '}
+                    <button
+                      type="button"
+                      className={styles.noticeAction}
+                      onClick={() => openSettings('data')}
+                    >
+                      {t('changeApiKey')}
+                    </button>
+                  </>
+                ) : null}
+                {notice.action === 'topUp' ? (
+                  <>
+                    {' '}
+                    <a
+                      className={styles.noticeAction}
+                      href={TOP_UP_URL}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {t('topUp')}
+                    </a>
+                  </>
+                ) : null}
+              </span>
+            </div>
+          ) : null}
+          {!streaming && !refused && view.searchResults.length > 0 ? (
+            <div
+              className={clsx(styles.summary, panelEntry === summaryEntry && styles.summaryActive)}
+              onClick={() => toggleSearchPanel(summaryEntry, view.searchResults)}
+            >
+              <SiteThumbnails sources={view.searchResults} />
+              <span>
+                {t(
+                  view.searchResults.length === 1 ? 'messageSearchSummary' : 'messageSearchSummaries',
+                  { count: view.searchResults.length }
+                )}
+              </span>
+            </div>
+          ) : null}
+          {streaming ? null : (
+            <div className={styles.bottom}>
+              <BranchSwitcher versions={versions} disabled={busy} onSelect={onSelectVersion} />
+              <div className={clsx(styles.actions, isLast && styles.alwaysShow)}>
+                {copyText ? <CopyButton text={copyText} /> : null}
+                {responseText && !refused ? (
+                  <ReadAloudButton messageId={message.id} text={responseText} />
+                ) : null}
+                <IconButton
+                  icon={<IconRefreshOutline16 />}
+                  tooltip={t('regenerate')}
+                  tooltipPlacement="bottom"
+                  disabled={busy || refused}
+                  onClick={() => {
+                    stopReadAloud()
+                    regenerateReply(sessionId, message.id)
+                  }}
+                />
+              </div>
+              {isLast && canContinueReply(message) ? (
+                <Button
+                  variant="outlined"
+                  size="s"
+                  className={styles.continueButton}
+                  disabled={busy}
+                  onClick={() => {
+                    stopReadAloud()
+                    continueReply(sessionId, message.id)
+                  }}
+                >
+                  {t('continueGenerating')}
+                </Button>
+              ) : null}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 })

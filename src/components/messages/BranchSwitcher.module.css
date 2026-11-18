@@ -18,3 +18,13 @@
   white-space: nowrap;
   user-select: none;
 }
+
+/* 壁纸模式：分支切换计数与箭头跟聊天区字色 */
+:global([data-app-wallpaper]) .count {
+  color: var(--wp-chat-text, var(--dsw-alias-label-tertiary)) !important;
+}
+
+:global([data-app-wallpaper]) .previous,
+:global([data-app-wallpaper]) .next {
+  color: var(--wp-chat-text, var(--dsw-alias-label-primary)) !important;
+}
