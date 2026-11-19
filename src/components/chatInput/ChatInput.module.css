@@ -872,6 +872,10 @@
   background-color: var(--dsw-alias-bg-base);
   box-shadow: 0 8px 32px rgba(15, 23, 42, 0.16);
   animation: attachPanelIn 0.16s ease-out;
+  /* 盖在 panelMask 之上：mask 是 fixed z-index:1 的全屏透明遮罩（点空白收起），
+     漏掉这两条时卡片被压在 mask 下面，点击全部落在 mask 上 = 点了就收、选择器永不弹出 */
+  position: relative;
+  z-index: 2;
 }
 
 .attachPanelRow {

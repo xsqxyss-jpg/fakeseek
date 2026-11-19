@@ -10,6 +10,9 @@
   overflow: hidden;
   padding-bottom: calc(var(--safe-bottom, 0px) + var(--ime-comp, 0px));
   background-color: var(--dsw-alias-bg-base);
+  /* --ime-comp 由键盘动画期间分次到达的 insets 注入驱动，短过渡把跳变抹成平滑跟随。
+     只作用于 padding-bottom；此前「顶飞」时代的双重扣减已修，这里不再有对拍副作用 */
+  transition: padding-bottom 0.15s ease-out;
 }
 
 :global([data-ime-open]) .frame {

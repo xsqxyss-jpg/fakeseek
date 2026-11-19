@@ -64,6 +64,7 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   const isMobile = useIsMobile()
   const search = useSettings((state) => state.search)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const togglesRef = useRef<HTMLDivElement>(null)
@@ -282,6 +283,21 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
               setAttachOpen(false)
             }}
           />
+          {/* 相册专用：accept 固定 image/*，不再手改共享 input 的属性——
+              改完靠取消/下次点击还原的写法在取消路径上会把 accept 永久卡死，
+              image/* + multiple 组合在部分系统相册里直接打不开 */}
+          <input
+            ref={galleryInputRef}
+            type="file"
+            multiple
+            hidden
+            accept="image/*"
+            onChange={(event) => {
+              acceptFiles(Array.from(event.target.files ?? []))
+              event.target.value = ''
+              setAttachOpen(false)
+            }}
+          />
           <input
             ref={cameraInputRef}
             type="file"
@@ -345,18 +361,8 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
           <div className={styles.panelMask} onClick={() => setAttachOpen(false)} />
           <AttachPanel
             onCamera={() => cameraInputRef.current?.click()}
-            onGallery={() => {
-              if (fileInputRef.current) {
-                fileInputRef.current.accept = 'image/*'
-                fileInputRef.current.click()
-              }
-            }}
-            onFile={() => {
-              if (fileInputRef.current) {
-                fileInputRef.current.accept = ACCEPT
-                fileInputRef.current.click()
-              }
-            }}
+            onGallery={() => galleryInputRef.current?.click()}
+            onFile={() => fileInputRef.current?.click()}
             onClose={() => setAttachOpen(false)}
           />
         </>
