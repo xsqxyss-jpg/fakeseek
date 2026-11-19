@@ -2,6 +2,7 @@ import { useTranslate } from '../../i18n/index.js'
 import { newChat } from '../../services/chat/store.js'
 import { setVoiceMuted, useSettings } from '../../services/settings.js'
 import { stopReadAloud } from '../../services/speech/readAloud.js'
+import { ViewportDebugPanel, useViewportDebug } from '../../app/viewportDebug.js'
 import { IconMenuOutline20 } from '../base/icons.js'
 import {
   IconMoreCircleOutline24,
@@ -20,6 +21,8 @@ export const MobileHeader = ({ title }: { title?: string }) => {
   const t = useTranslate()
   const voiceMuted = useSettings((state) => state.voiceMuted)
   const moreOpen = useMorePanel((state) => state.open)
+  // 长按顶栏 3 秒弹出键盘视口调试面板（远程排障用，平时无感）
+  const { debugProps, visible, hide } = useViewportDebug()
   const toggleMute = () => {
     const next = !voiceMuted
     if (next) {
@@ -29,7 +32,8 @@ export const MobileHeader = ({ title }: { title?: string }) => {
     showToast({ key: next ? 'voiceMuteOn' : 'voiceMuteOff' })
   }
   return (
-    <div className={styles.header}>
+    <div className={styles.header} {...debugProps}>
+      {visible ? <ViewportDebugPanel hide={hide} /> : null}
       <IconButton
         size="xl"
         tone="primary"

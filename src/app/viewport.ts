@@ -55,6 +55,8 @@ export const useMobileViewport = (enabled: boolean) => {
     const viewport = window.visualViewport
     const inputSelector = 'textarea, input:not([type="file"])'
     let animationFrame = 0
+    /** 聚焦后的兜底重算定时器，清理用 */
+    const retryTimers: number[] = []
     const read = (name: string) =>
       parseFloat(getComputedStyle(root).getPropertyValue(name)) || 0
     let baseline = Math.max(window.innerHeight, viewport?.height ?? 0)
@@ -86,17 +88,17 @@ export const useMobileViewport = (enabled: boolean) => {
         const extra = Math.max(0, ime - shrunk)
         root.style.setProperty('--ime-comp', `${extra}px`)
       }
+      // 调试面板读取：基准高度落到 CSS 变量，远程排障时一眼核对 baseline 污染
+      root.style.setProperty('--vp-baseline', `${Math.round(baseline)}px`)
 
       if (!document.activeElement?.matches(inputSelector)) {
         reset()
         return
       }
       frame.style.setProperty('--app-viewport-height', `${height}px`)
-      // 钳制 offsetTop 为 0，防止文档级滚动把 fixed 容器顶走
+      // offsetTop 钳制为 0：fixed 容器锚定 layout viewport，不跟随系统 pan
+      //（不主动 scrollTo 回滚——鸿蒙 pan 模式下会和系统平移打架造成抖动）
       frame.style.setProperty('--app-viewport-top', '0px')
-      if (window.scrollY !== 0) {
-        window.scrollTo(0, 0)
-      }
     }
 
     const scheduleFrame = () => {
@@ -110,6 +112,18 @@ export const useMobileViewport = (enabled: boolean) => {
     const onFocusIn = () => {
       if (document.activeElement?.matches(inputSelector)) {
         schedule()
+        // 部分系统（鸿蒙/Android 15+）insets 回调滞后于键盘动画，事件驱动会慢半拍。
+        // 聚焦后分三次主动重算兜底，update 幂等无副作用。
+        const delays = [400, 900, 1600]
+        for (const delay of delays) {
+          retryTimers.push(
+            window.setTimeout(() => {
+              if (document.activeElement?.matches(inputSelector)) {
+                update()
+              }
+            }, delay)
+          )
+        }
       }
     }
 
@@ -139,6 +153,7 @@ export const useMobileViewport = (enabled: boolean) => {
     document.addEventListener('focusout', scheduleFrame)
     return () => {
       cancelAnimationFrame(animationFrame)
+      retryTimers.forEach((timer) => clearTimeout(timer))
       attributeObserver.disconnect()
       viewport?.removeEventListener('resize', schedule)
       viewport?.removeEventListener('scroll', schedule)
