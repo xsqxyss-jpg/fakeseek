@@ -54,12 +54,13 @@ import { SystemPromptSetting } from './SystemPromptSetting.js'
 import {
   closeSettings,
   openSettings,
+  setSettingsSection,
   useSettingsDialog,
   type SettingsSection,
 } from './settingsDialogState.js'
 import styles from './Settings.module.css'
 
-const APP_VERSION = '1.0.0 (5)'
+const APP_VERSION = '1.0.11 (12)'
 
 /**
  * 设置页（官方 App 风格）：移动端全屏、桌面居中大卡片。
@@ -82,7 +83,7 @@ const sectionTitles: Record<Exclude<SettingsSection, 'general'>, TranslationKey>
 
 const SettingsContent = () => {
   const t = useTranslate()
-  const [section, setSection] = useState<SettingsSection>(() => useSettingsDialog.getState().section)
+  const section = useSettingsDialog((state) => state.section)
   // 子页间切换不丢失正在输入的 API Key 与导入状态
   const apiKeyEditor = useApiKeyEditor()
   const historyImport = useHistoryImport()
@@ -102,7 +103,7 @@ const SettingsContent = () => {
                 if (section === 'general') {
                   closeSettings()
                 } else {
-                  setSection('general')
+                  setSettingsSection('general')
                 }
               }}
             >
@@ -124,7 +125,7 @@ const SettingsContent = () => {
       >
         <div className={styles.content}>
           {section === 'general' ? (
-            <SettingsHome onNavigate={setSection} />
+            <SettingsHome onNavigate={setSettingsSection} />
           ) : section === 'data' ? (
             <div className={styles.card}>
               <ApiKeyField editor={apiKeyEditor} />

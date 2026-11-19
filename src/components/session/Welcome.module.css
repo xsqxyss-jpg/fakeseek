@@ -236,15 +236,8 @@
 }
 
 @media not all and (min-width: 768px) {
-  /* 首屏：输入卡贴近底部，去掉多余留白 */
+  /* 首屏：输入卡贴近底部，安全区统一由外层 .frame 承担，避免双重扣减 */
   .welcome {
-    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-  }
-}
-
-@media not all and (min-width: 768px) {
-  /* 首屏顶栏同样沉浸 */
-  .welcome {
-    padding-bottom: calc(10px + var(--safe-bottom, 0px));
+    padding-bottom: 10px;
   }
 }

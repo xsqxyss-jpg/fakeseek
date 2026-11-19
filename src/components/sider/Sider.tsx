@@ -21,7 +21,12 @@ import { IconButton } from '../base/IconButton.js'
 import { Modal } from '../base/Modal.js'
 import { showToast } from '../base/toastState.js'
 import { openSettings } from '../settings/settingsDialogState.js'
-import { closeMobileSider, useMobileSider } from './mobileSiderState.js'
+import {
+  closeMobileSider,
+  setSiderSearchMode,
+  setSiderSelectMode,
+  useMobileSider,
+} from './mobileSiderState.js'
 import { SessionItem } from './SessionItem.js'
 import styles from './Sider.module.css'
 
@@ -42,9 +47,9 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
   /** 内容搜索命中的会话 id；null = 未在搜索。标题匹配即时，内容匹配异步补充。 */
   const [contentHits, setContentHits] = useState<Set<string> | null>(null)
   /** 搜索整页展开态：官方点搜索框后整页铺满，顶部输入 + 结果列表 */
-  const [searchMode, setSearchMode] = useState(false)
+  const searchMode = useMobileSider((state) => state.searchMode)
   /** 多选页：官方是独立一整页盖在侧栏上，不是列表里就地多选 */
-  const [selectMode, setSelectMode] = useState(false)
+  const selectMode = useMobileSider((state) => state.selectMode)
   const [selected, setSelected] = useState<Set<string>>(() => new Set())
   const pinnedIds = usePinned((state) => state.ids)
   const [now, setNow] = useState(Date.now)
@@ -177,7 +182,7 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
 
   const openSelectMode = () => {
     setSelected(new Set())
-    setSelectMode(true)
+    setSiderSelectMode(true)
   }
 
   return (
@@ -191,7 +196,7 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
             icon={<IconCloseOutline16 />}
             aria-label={t('siderExitSearch')}
             onClick={() => {
-              setSearchMode(false)
+              setSiderSearchMode(false)
               setQuery('')
             }}
           />
@@ -203,7 +208,7 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
             type="search"
             placeholder={t('siderSearchPlaceholder')}
             value={query}
-            onFocus={() => setSearchMode(true)}
+            onFocus={() => setSiderSearchMode(true)}
             onChange={(event) => setQuery(event.target.value)}
           />
         </div>
@@ -290,7 +295,7 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
               className={styles.selectClose}
               aria-label={t('siderExitMultiSelect')}
               onClick={() => {
-                setSelectMode(false)
+                setSiderSelectMode(false)
                 setSelected(new Set())
               }}
             >
@@ -337,7 +342,7 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
                 } else {
                   ids.forEach(togglePinned)
                 }
-                setSelectMode(false)
+                setSiderSelectMode(false)
                 setSelected(new Set())
               }}
             >
@@ -350,7 +355,7 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
               disabled={selected.size === 0}
               onClick={async () => {
                 const ids = [...selected]
-                setSelectMode(false)
+                setSiderSelectMode(false)
                 setSelected(new Set())
                 for (const id of ids) {
                   await removeSession(id)

@@ -10,7 +10,10 @@
   overflow: hidden;
   padding-bottom: calc(var(--safe-bottom, 0px) + var(--ime-comp, 0px));
   background-color: var(--dsw-alias-bg-base);
-  transition: padding-bottom 0.15s ease-out;
+}
+
+:global([data-ime-open]) .frame {
+  padding-bottom: var(--ime-comp, 0px);
 }
 
 .main {

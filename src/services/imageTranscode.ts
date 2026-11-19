@@ -161,10 +161,36 @@ const renderScaled = async (
 }
 
 /**
+ * 解码兜底：头部读不出尺寸（截断/异常元数据），或 SVG 这类服务端不支持的格式走这里。
+ * forceEncode=true 时无论尺寸都转 JPEG（SVG 服务端不认，必须转）；
+ * 否则尺寸合规就原样返回，超限才缩小转 JPEG。解码失败按原类型返回，让服务端给出准确错误。
+ */
+const normalizeByDecode = async (source: Blob, forceEncode: boolean): Promise<Blob> => {
+  const url = URL.createObjectURL(source)
+  try {
+    const image = await loadImage(url)
+    const oversized = Math.max(image.naturalWidth, image.naturalHeight) > MAX_SIDE
+    if (!oversized && !forceEncode) {
+      return new Blob([source], { type: source.type })
+    }
+    const rendered = await renderScaled(source, image.naturalWidth, image.naturalHeight)
+    const encoded = await new Promise<Blob | null>((resolve) => {
+      rendered?.canvas.toBlob(resolve, 'image/jpeg', JPEG_QUALITY)
+    })
+    return encoded ?? new Blob([source], { type: source.type })
+  } catch {
+    return new Blob([source], { type: source.type })
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
+/**
  * 上传前归一化图片：
- * - GIF 直传，重编码会丢掉动画帧；
+ * - GIF 动图尺寸合规时直传（重编码丢动画帧）；超限动图原样上传会被服务端
+ *   4096 尺寸上限拒绝且重传无解，取首帧转 JPEG 保住对话；
  * - 服务端支持的格式、体积不超限、单边不超过 MAX_SIDE 时直传；
- * - 其余格式或超限图，解码后转成 JPEG；
+ * - 其余格式或超限图，解码后转成 JPEG；头部读不出尺寸的完整解码确认；
  * - 解码失败时按识别出的类型原样返回，让服务端给出准确错误，不静默丢附件。
  */
 export const normalizeImage = async (blob: Blob): Promise<Blob> => {
@@ -172,7 +198,11 @@ export const normalizeImage = async (blob: Blob): Promise<Blob> => {
   const head = new Uint8Array(await blob.slice(0, 65536).arrayBuffer())
   const detected = sniffImageType(head)
   if (detected === 'image/gif') {
-    return new Blob([blob], { type: detected })
+    const size = readSize(head, detected)
+    if (!size || Math.max(size.width, size.height) <= MAX_SIDE) {
+      return new Blob([blob], { type: detected })
+    }
+    return normalizeByDecode(new Blob([blob], { type: detected }), false)
   }
   if (SUPPORTED_IMAGE_TYPES.has(detected)) {
     const size = readSize(head, detected)
@@ -187,24 +217,13 @@ export const normalizeImage = async (blob: Blob): Promise<Blob> => {
       })
       return encoded ?? new Blob([blob], { type: detected })
     }
-    return new Blob([blob], { type: detected })
+    // 头部读不出尺寸：完整解码确认真实尺寸，合规直传、超限缩小
+    return normalizeByDecode(new Blob([blob], { type: detected }), false)
   }
-  // SVG 无魔数，补上正确类型后才能绘制
+  // SVG 无魔数，补上正确类型后才能绘制；服务端不认 SVG，无论尺寸都转 JPEG
   const source = detected ? new Blob([blob], { type: detected }) : await asSvgBlob(blob)
   if (!source) {
     return new Blob([blob], { type: blob.type })
   }
-  const url = URL.createObjectURL(source)
-  try {
-    const image = await loadImage(url)
-    const rendered = await renderScaled(source, image.naturalWidth, image.naturalHeight)
-    const encoded = await new Promise<Blob | null>((resolve) => {
-      rendered?.canvas.toBlob(resolve, 'image/jpeg', JPEG_QUALITY)
-    })
-    return encoded ?? new Blob([blob], { type: source.type })
-  } catch {
-    return new Blob([blob], { type: source.type })
-  } finally {
-    URL.revokeObjectURL(url)
-  }
+  return normalizeByDecode(source, true)
 }

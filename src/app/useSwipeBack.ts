@@ -1,6 +1,11 @@
 import { useEffect } from 'react'
 import { closeSettings, useSettingsDialog } from '../components/settings/settingsDialogState.js'
-import { closeMobileSider, useMobileSider } from '../components/sider/mobileSiderState.js'
+import {
+  closeMobileSider,
+  setSiderSearchMode,
+  setSiderSelectMode,
+  useMobileSider,
+} from '../components/sider/mobileSiderState.js'
 import { newChat, useChatStore } from '../services/chat/store.js'
 
 /**
@@ -8,7 +13,16 @@ import { newChat, useChatStore } from '../services/chat/store.js'
  * 顺序：多选页 → 搜索页 → 抽屉 → 设置子页 → 设置首页 → 会话页回列表 → 无。
  */
 export const goBack = (): boolean => {
-  if (useMobileSider.getState().open) {
+  const sider = useMobileSider.getState()
+  if (sider.open) {
+    if (sider.selectMode) {
+      setSiderSelectMode(false)
+      return true
+    }
+    if (sider.searchMode) {
+      setSiderSearchMode(false)
+      return true
+    }
     closeMobileSider()
     return true
   }

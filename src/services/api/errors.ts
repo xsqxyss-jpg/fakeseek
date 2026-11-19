@@ -96,13 +96,20 @@ const PARSE_FAILED_PATTERNS = [
 /**
  * 服务端拒绝消息里某张图片的内容（格式不受支持、损坏、尺寸超限）：
  * file_id 本身有效，重传同一份字节也救不回来，只能把这张图从请求里摘掉。
+ * 两类文案都要认：格式/损坏类「You have uploaded an unsupported/invalid image」、
+ * 尺寸超限类「The image is too large to process」（单边 >4096px，多来自旧版本
+ * 上传的历史大图或超限动图）。漏认任何一类，自动摘图重发路径都不会触发，
+ * 用户会永远卡在同一条 messages.N.content.M 报错上。
  * 与 getFileErrorCode 的 file_id 失效区分开。
  */
 export const isImageRejectedError = (error: unknown): boolean => {
   if (!(error instanceof ApiError) || error.status !== 400) {
     return false
   }
-  return /You have uploaded an (unsupported|invalid) (file|image)/i.test(error.message)
+  return (
+    /You have uploaded an (unsupported|invalid) (file|image)/i.test(error.message) ||
+    /The image is too large to process/i.test(error.message)
+  )
 }
 
 /** 上下文超长：服务端拒绝整轮请求，必须裁剪历史后重发 */

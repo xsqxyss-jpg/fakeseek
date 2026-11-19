@@ -116,9 +116,9 @@
 }
 
 @media not all and (min-width: 768px) {
-  /* 输入区让开底部导航条 */
+  /* 安全区统一由外层 .frame 承担，避免双重扣减 */
   .inputContainer {
-    padding-bottom: calc(6px + var(--safe-bottom, 0px));
+    padding-bottom: 6px;
   }
 }
 

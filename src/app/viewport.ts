@@ -46,92 +46,70 @@ export const usePreventPageScroll = (enabled: boolean) => {
 export const useMobileViewport = (enabled: boolean) => {
   const frameRef = useRef<HTMLDivElement>(null)
 
-  // --safe-bottom 保持「底部导航条高度」不变（原生注入，已在真机验证）。
-  // 部分机型的 WebView 在键盘弹出时不缩小视觉视口，键盘会盖住输入卡；
-  // 这里只在那种情况下补差额，交给 --ime-comp，仅由 .frame 追加，
-  // 其他消费点（输入卡、侧栏、设置页）仍只吃 --safe-bottom，不会重复扣。
-  // 基准高度用「键盘收起时的 visualViewport.height」实测值，不依赖 window.innerHeight，
-  // 因为不同 WebView 是否随键盘缩小布局视口并不一致。
-  useEffect(() => {
-    if (!enabled) {
-      return
-    }
-    const root = document.documentElement
-    const viewport = window.visualViewport
-    const read = (name: string) =>
-      parseFloat(getComputedStyle(root).getPropertyValue(name)) || 0
-    /** 键盘收起时的可视高度；键盘弹出时视口若真的缩小，差额就记在这里 */
-    let baseline = viewport?.height ?? window.innerHeight
-    const sync = () => {
-      const ime = read('--ime-height')
-      const nav = read('--nav-bottom')
-      const height = viewport?.height ?? window.innerHeight
-      if (ime <= 0) {
-        // 键盘收起：记住这一屏的可视高度，作为下次判断的基准，同时清掉补偿
-        baseline = height
-        root.style.setProperty('--ime-comp', '0px')
-        return
-      }
-      // 键盘高度 - 视口已让开的高度 - 导航条已让开的高度 = 还差多少没让开
-      const shrunk = Math.max(0, baseline - height)
-      const extra = Math.max(0, ime - shrunk - nav)
-      root.style.setProperty('--ime-comp', `${extra}px`)
-    }
-    sync()
-    viewport?.addEventListener('resize', sync)
-    window.addEventListener('resize', sync)
-    return () => {
-      viewport?.removeEventListener('resize', sync)
-      window.removeEventListener('resize', sync)
-      root.style.removeProperty('--ime-comp')
-    }
-  }, [enabled])
-
   useLayoutEffect(() => {
     const frame = frameRef.current
     if (!enabled || !frame) {
       return
     }
+    const root = document.documentElement
     const viewport = window.visualViewport
     const inputSelector = 'textarea, input:not([type="file"])'
     let animationFrame = 0
+    const read = (name: string) =>
+      parseFloat(getComputedStyle(root).getPropertyValue(name)) || 0
+    let baseline = Math.max(window.innerHeight, viewport?.height ?? 0)
+
     const reset = () => {
       frame.style.removeProperty('--app-viewport-height')
       frame.style.removeProperty('--app-viewport-top')
     }
+
     const update = () => {
-      // 双指缩放由浏览器处理，保持当前布局尺寸。
       if (viewport && viewport.scale !== 1) {
         return
       }
-      // 失焦后直接恢复 CSS 的全高布局，不等 Safari 收键盘后的 resize。
+      const ime = read('--ime-height')
+      const height = viewport?.height ?? window.innerHeight
+
+      if (ime <= 0) {
+        baseline = Math.max(baseline, height)
+        root.removeAttribute('data-ime-open')
+        root.style.setProperty('--ime-comp', '0px')
+      } else {
+        root.setAttribute('data-ime-open', '')
+        // baseline 污染护栏：键盘态下视口反而比基准高，说明基准记小了，重置为当前值
+        if (height > baseline) {
+          baseline = height
+        }
+        // 视口已让开的部分直接抵扣：全缩→0，不缩→ime，半缩→差额（连续成立，无阈值跳变）
+        const shrunk = Math.max(0, baseline - height)
+        const extra = Math.max(0, ime - shrunk)
+        root.style.setProperty('--ime-comp', `${extra}px`)
+      }
+
       if (!document.activeElement?.matches(inputSelector)) {
         reset()
         return
       }
-      frame.style.setProperty(
-        '--app-viewport-height',
-        `${viewport?.height ?? window.innerHeight}px`
-      )
-      frame.style.setProperty('--app-viewport-top', `${viewport?.offsetTop ?? 0}px`)
+      frame.style.setProperty('--app-viewport-height', `${height}px`)
+      // 钳制 offsetTop 为 0，防止文档级滚动把 fixed 容器顶走
+      frame.style.setProperty('--app-viewport-top', '0px')
+      if (window.scrollY !== 0) {
+        window.scrollTo(0, 0)
+      }
     }
+
     const scheduleFrame = () => {
       cancelAnimationFrame(animationFrame)
       animationFrame = requestAnimationFrame(update)
     }
     const schedule = () => {
-      // 先同步跟上键盘动画，下一帧再校准 Safari 延迟更新的视口读数。
       update()
       scheduleFrame()
     }
     const onFocusIn = () => {
       if (document.activeElement?.matches(inputSelector)) {
         schedule()
-        // 键盘弹起后把输入框滚进可视区：部分机型 WebView 不自动滚，
-        // 表现为「键盘弹出来了但输入框还在屏幕外/键盘底下」，再点一次才弹。
-        setTimeout(() => {
-          document.activeElement?.scrollIntoView({ block: 'center', behavior: 'smooth' })
-        }, 350)
       }
     }
 
@@ -140,7 +118,6 @@ export const useMobileViewport = (enabled: boolean) => {
     viewport?.addEventListener('scroll', schedule)
     window.addEventListener('resize', schedule)
     document.addEventListener('focusin', onFocusIn)
-    // 等点击和焦点切换完成，避免按钮移动、或切换输入框时短暂恢复全高。
     document.addEventListener('focusout', scheduleFrame)
     return () => {
       cancelAnimationFrame(animationFrame)
@@ -149,6 +126,8 @@ export const useMobileViewport = (enabled: boolean) => {
       window.removeEventListener('resize', schedule)
       document.removeEventListener('focusin', onFocusIn)
       document.removeEventListener('focusout', scheduleFrame)
+      root.removeAttribute('data-ime-open')
+      root.style.removeProperty('--ime-comp')
       reset()
     }
   }, [enabled])

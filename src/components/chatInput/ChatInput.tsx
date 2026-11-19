@@ -200,12 +200,9 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
           // 字色直接写行内 style：变量在部分端上被级联吞掉，行内没有中间层
           style={wpInputColor ? { color: wpInputColor } : undefined}
           onChange={(event) => setText(event.target.value)}
-          onMouseDown={(event) => {
-            // 首次点击时手动聚焦，避免 Safari 把整个页面滚到输入框位置。
-            if (isMobile && event.button === 0 && document.activeElement !== event.currentTarget) {
-              event.preventDefault()
-              event.currentTarget.focus({ preventScroll: true })
-            }
+          onFocus={() => {
+            closeMorePanel()
+            setAttachOpen(false)
           }}
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
@@ -352,13 +349,14 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
               if (fileInputRef.current) {
                 fileInputRef.current.accept = 'image/*'
                 fileInputRef.current.click()
-                // 提示器选择后还原完整接受列表
-                setTimeout(() => {
-                  if (fileInputRef.current) fileInputRef.current.accept = ACCEPT
-                }, 60000)
               }
             }}
-            onFile={() => fileInputRef.current?.click()}
+            onFile={() => {
+              if (fileInputRef.current) {
+                fileInputRef.current.accept = ACCEPT
+                fileInputRef.current.click()
+              }
+            }}
             onClose={() => setAttachOpen(false)}
           />
         </>

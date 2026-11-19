@@ -215,16 +215,16 @@ export const importArchive = async (
         // 账号信息（已脱敏）不导入；文件可能缺失。
         await skipEntry(entry)
       } else if (sessionId !== null && !index) {
-        const local = toLocalSession(readSessionFile(await readJson(entry)))
-        if (local.session.id !== sessionId || imported.has(sessionId)) {
-          fail('backupIncomplete')
-        }
-        // 勾选过滤：未勾选的会话记入 skipped，其图片条目后面也一并跳过
+        // 勾选过滤：未勾选的会话直接跳过字节流，不做 JSON 解析与对象转换
         if (selectedIds && !selectedIds.has(sessionId)) {
           skipped.add(sessionId)
           currentSessionId = sessionId
           await skipEntry(entry)
         } else {
+          const local = toLocalSession(readSessionFile(await readJson(entry)))
+          if (local.session.id !== sessionId || imported.has(sessionId)) {
+            fail('backupIncomplete')
+          }
           imported.add(sessionId)
           for (const [imagePath, id] of local.images) {
             images.set(imagePath, id)
