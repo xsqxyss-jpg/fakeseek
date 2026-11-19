@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import type { ReactNode } from 'react'
+import type { AnchorHTMLAttributes, ReactNode } from 'react'
 import { useTranslate } from '../../i18n/index.js'
 import { formatSize, getExtension } from '../../services/attachments.js'
 import { IconCloseFill14, IconRefreshOutline16 } from '../base/icons.js'
@@ -18,7 +18,7 @@ export const FileCard = ({
   error,
   onRetry,
   onRemove,
-  onOpen,
+  link,
 }: {
   name: string
   size: number
@@ -26,7 +26,7 @@ export const FileCard = ({
   error?: string
   onRetry?: () => void
   onRemove?: () => void
-  onOpen?: () => void
+  link?: AnchorHTMLAttributes<HTMLAnchorElement>
 }) => {
   const t = useTranslate()
   const ext = getExtension(name)
@@ -42,14 +42,15 @@ export const FileCard = ({
     }
     description = error ?? t('uploadFileStatusFailed')
   }
-  const onClick = status === 'error' ? onRetry : status === 'done' ? onOpen : undefined
+  const onClick = status === 'error' ? onRetry : undefined
+  const fileLink = status === 'done' ? link : undefined
   return (
     <div
       className={clsx(
         styles.card,
         onRemove && styles.editable,
         status === 'error' && (onRemove || onRetry) && styles.failed,
-        onClick && styles.clickable
+        (onClick || fileLink) && styles.clickable
       )}
       title={
         status === 'error'
@@ -65,6 +66,7 @@ export const FileCard = ({
         <div className={styles.caption}>{name}</div>
         <div className={styles.subCaption}>{description}</div>
       </div>
+      {fileLink && <a {...fileLink} aria-label={name} />}
       {onRemove ? (
         <button
           type="button"

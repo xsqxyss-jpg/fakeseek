@@ -13,6 +13,11 @@
   cursor: default;
   transition: background-color 0.2s ease-in-out;
 
+  > a {
+    position: absolute;
+    inset: 0;
+  }
+
   &:hover .remove {
     opacity: 1;
   }

@@ -16,7 +16,6 @@ export type DraftAttachment = {
   id: string
   file: File
   isImage: boolean
-  previewUrl: string | null
 }
 
 type Draft = { text: string; attachments: DraftAttachment[] }
@@ -57,7 +56,7 @@ const upload = (attachment: DraftAttachment, apiKey: string) => {
   ).catch(() => {})
 }
 
-/** 整批校验通过后才创建预览和开始上传。 */
+/** 整批校验通过后才加入草稿并开始上传。 */
 export const addDraftFiles = (
   sessionId: string | null,
   files: File[],
@@ -70,15 +69,13 @@ export const addDraftFiles = (
   if (error) {
     return error
   }
-  const added = files.map((file): DraftAttachment => {
-    const image = isImage(resolveMimeType(file))
-    return {
+  const added = files.map(
+    (file): DraftAttachment => ({
       id: createId(),
       file,
-      isImage: image,
-      previewUrl: image ? URL.createObjectURL(file) : null,
-    }
-  })
+      isImage: isImage(resolveMimeType(file)),
+    })
+  )
   updateDraft(sessionId, (draft) => ({ ...draft, attachments: [...draft.attachments, ...added] }))
   added.forEach((attachment) => upload(attachment, apiKey))
   return null
@@ -120,42 +117,32 @@ export const prepareDraftMessage = (draft: Draft, tasks: Record<string, UploadTa
   return { text, files }
 }
 
-const releaseAttachment = (attachment: DraftAttachment, cancel: boolean) => {
-  if (cancel) {
-    cancelUpload(attachment.id)
-  }
-  if (attachment.previewUrl) {
-    URL.revokeObjectURL(attachment.previewUrl)
-  }
-}
-
 export const removeDraftAttachment = (sessionId: string | null, attachmentId: string) => {
   const attachment = getDraft(sessionId).attachments.find((item) => item.id === attachmentId)
   if (!attachment) {
     return
   }
-  releaseAttachment(attachment, true)
+  cancelUpload(attachment.id)
   updateDraft(sessionId, (draft) => ({
     ...draft,
     attachments: draft.attachments.filter((item) => item.id !== attachmentId),
   }))
 }
 
-/** 发送成功后原件与 serverId 已交给会话，释放预览但保留上传完成态。 */
+/** 发送成功后原件与 serverId 已交给会话，保留上传完成态。 */
 export const clearSentDraft = (sessionId: string | null) => {
-  getDraft(sessionId).attachments.forEach((attachment) => releaseAttachment(attachment, false))
   updateDraft(sessionId, () => EMPTY_DRAFT)
 }
 
 /** 删除会话或替换历史成功后，释放尚未发送的草稿及上传任务。 */
 export const clearDraft = (sessionId: string | null) => {
-  getDraft(sessionId).attachments.forEach((attachment) => releaseAttachment(attachment, true))
+  getDraft(sessionId).attachments.forEach((attachment) => cancelUpload(attachment.id))
   updateDraft(sessionId, () => EMPTY_DRAFT)
 }
 
 export const clearAllDrafts = () => {
   for (const draft of useDrafts.getState().drafts.values()) {
-    draft.attachments.forEach((attachment) => releaseAttachment(attachment, true))
+    draft.attachments.forEach((attachment) => cancelUpload(attachment.id))
   }
   useDrafts.setState({ drafts: new Map() })
 }

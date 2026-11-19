@@ -3,6 +3,7 @@ import clsx from 'clsx'
 import { memo, useLayoutEffect, useRef, useState } from 'react'
 import { useIsMobile } from '../../app/viewport.js'
 import { IconEditOutline16 } from '../base/icons.js'
+import { getFileViewType, isImage } from '../../services/attachments.js'
 import { editMessage, retryUpload } from '../../services/chat/store.js'
 import { stopReadAloud } from '../../services/speech/readAloud.js'
 import type { UserMessage as UserMessageType } from '../../services/chat/types.js'
@@ -69,7 +70,8 @@ export const UserMessage = memo(function UserMessage({
             <div
               className={clsx(
                 styles.files,
-                message.files.some((file) => !file.isImage) && styles.filesWithDocuments
+                message.files.some((file) => !isImage(getFileViewType(file.name))) &&
+                  styles.filesWithDocuments
               )}
             >
               {message.files.map((file) => (
