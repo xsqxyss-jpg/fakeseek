@@ -113,6 +113,24 @@ export const useMobileViewport = (enabled: boolean) => {
       }
     }
 
+    // 鸿蒙/Android 15+ edge-to-edge：键盘弹出时窗口与视觉视口都不缩、不发 resize，
+    // 唯一信号是原生层注入的 --ime-height / --nav-bottom。监听 html 的 style 属性变化，
+    // 注入一到位立刻重算补偿，否则输入框会被键盘盖住（focusin 时键盘还没弹起，读到的 ime 是 0）。
+    // update() 自己也会写 html.style（--ime-comp / data-ime-open），所以只认 ime/nav 真变了才重算，
+    // 避免自触发 60fps 空转。
+    let lastInjectedIme = read('--ime-height')
+    let lastInjectedNav = read('--nav-bottom')
+    const attributeObserver = new MutationObserver(() => {
+      const ime = read('--ime-height')
+      const nav = read('--nav-bottom')
+      if (ime !== lastInjectedIme || nav !== lastInjectedNav) {
+        lastInjectedIme = ime
+        lastInjectedNav = nav
+        schedule()
+      }
+    })
+    attributeObserver.observe(root, { attributes: true, attributeFilter: ['style'] })
+
     update()
     viewport?.addEventListener('resize', schedule)
     viewport?.addEventListener('scroll', schedule)
@@ -121,6 +139,7 @@ export const useMobileViewport = (enabled: boolean) => {
     document.addEventListener('focusout', scheduleFrame)
     return () => {
       cancelAnimationFrame(animationFrame)
+      attributeObserver.disconnect()
       viewport?.removeEventListener('resize', schedule)
       viewport?.removeEventListener('scroll', schedule)
       window.removeEventListener('resize', schedule)

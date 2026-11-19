@@ -57,7 +57,14 @@ public class MainActivity extends BridgeActivity {
                     Math.round(bars.bottom / density),
                     Math.round(ime.bottom / density),
                     Math.round(bars.bottom / density));
-            webView.post(() -> webView.evaluateJavascript(js, null));
+            // 鸿蒙/Android 15+ edge-to-edge：键盘弹出时 WebView 不缩放也不派发 resize，
+            // 网页侧无从得知 ime 高度变化。注入 CSS 变量后顺手派发一次 window resize，
+            // 双保险触发网页的视口重算（网页侧另有 MutationObserver 监听变量注入）。
+            webView.post(() -> {
+                webView.evaluateJavascript(js, null);
+                webView.evaluateJavascript(
+                        "window.dispatchEvent(new Event('resize'))", null);
+            });
             return insets;
         });
 
