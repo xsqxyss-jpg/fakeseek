@@ -307,12 +307,30 @@ export async function* readArchive(file: File): AsyncGenerator<ArchiveEntry> {
   }
 }
 
-/** 读出整个条目：会话 JSON 需要完整解析，图片需要识别类型后整张保存。 */
+/** 读出整个条目：会话 JSON 需要完整解析，图片需要识别类型后整张保存。
+ *  解压块先聚合到 ~1MB 的 Buffer 再并入 Blob 列表：大会话 JSON 会产生数千个
+ *  8KB 解压块，逐块建 Blob 在低端手机 WebView 上内存与 GC 开销极大，
+ *  是「导入扫描卡死」的主要元凶之一。 */
 export const readEntry = async (entry: ArchiveEntry): Promise<Blob> => {
   const parts: Blob[] = []
-  for await (const chunk of entry.stream) {
-    parts.push(new Blob([chunk as Uint8Array<ArrayBuffer>]))
+  let buffer: Uint8Array[] = []
+  let buffered = 0
+  const AGGREGATE_BYTES = 1024 * 1024
+  const flush = () => {
+    if (buffered > 0) {
+      parts.push(new Blob(buffer as BlobPart[]))
+      buffer = []
+      buffered = 0
+    }
   }
+  for await (const chunk of entry.stream) {
+    buffer.push(chunk)
+    buffered += chunk.length
+    if (buffered >= AGGREGATE_BYTES) {
+      flush()
+    }
+  }
+  flush()
   return new Blob(parts)
 }
 

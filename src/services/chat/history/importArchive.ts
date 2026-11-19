@@ -122,6 +122,9 @@ export const listArchive = async (
           insertedAt: local.session.createdAt,
           updatedAt: local.session.updatedAt,
         })
+        // 大会话条目的解压+解析是一次主线程长任务；每解析完一个让出一次主线程，
+        // 进度条与触摸事件才有机会被处理（否则整段扫描期间 UI 完全冻结）
+        await new Promise((resolve) => setTimeout(resolve, 0))
       } else if (path === USER_PATH && !index && imported.size === 0) {
         await skipEntry(entry)
       } else if (path === INDEX_PATH && !index) {
@@ -230,6 +233,8 @@ export const importArchive = async (
             images.set(imagePath, id)
           }
           await db.addStagingSession(local.session)
+          // 大会话解析是主线程长任务；写完暂存让出一次主线程，进度条与触摸事件才能被处理
+          await new Promise((resolve) => setTimeout(resolve, 0))
         }
       } else if (path === INDEX_PATH && !index) {
         index = readSessionIndex(await readJson(entry))
