@@ -637,44 +637,46 @@ const ImportConfirm = ({
         )
       }
     >
-      {scanning ? (
-        <div className={styles.importConfirmText}>{t('historyScanning')}</div>
-      ) : (
-        <>
-          <div className={styles.importConfirmText}>{t('historyImportPickPrompt')}</div>
-          <div className={styles.importSessionList}>
-            <label className={styles.importSessionRow}>
-              <input
-                type="checkbox"
-                className={styles.importSessionCheck}
-                checked={allChecked}
-                onChange={() =>
-                  historyImport.setChecked(
-                    allChecked ? new Set() : new Set(sessions.map((item) => item.id))
-                  )
-                }
-              />
-              <span className={styles.importSessionTitle}>{t('historyImportSelectAll')}</span>
-            </label>
-            {sessions.map((item) => (
-              <label key={item.id} className={styles.importSessionRow}>
-                <input
-                  type="checkbox"
-                  className={styles.importSessionCheck}
-                  checked={checked.has(item.id)}
-                  onChange={() => toggle(item.id)}
-                />
-                <span className={styles.importSessionTitle}>
-                  {item.title || t('untitledChat')}
-                </span>
-                <span className={styles.importSessionMeta}>
-                  {t('historyImportMessageCount', { count: String(item.messageCount) })}
-                </span>
-              </label>
-            ))}
-          </div>
-        </>
-      )}
+      <div className={styles.importConfirmText}>
+        {scanning ? t('historyScanning') : t('historyImportPickPrompt')}
+      </div>
+      <div className={styles.importSessionList}>
+        {scanning ? null : (
+          <label className={styles.importSessionRow}>
+            <input
+              type="checkbox"
+              className={styles.importSessionCheck}
+              checked={allChecked}
+              onChange={() =>
+                historyImport.setChecked(
+                  allChecked ? new Set() : new Set(sessions.map((item) => item.id))
+                )
+              }
+            />
+            <span className={styles.importSessionTitle}>{t('historyImportSelectAll')}</span>
+          </label>
+        )}
+        {sessions.map((item) => (
+          <label key={item.id} className={styles.importSessionRow}>
+            <input
+              type="checkbox"
+              className={styles.importSessionCheck}
+              checked={!scanning && checked.has(item.id)}
+              disabled={scanning}
+              onChange={() => toggle(item.id)}
+            />
+            <span className={styles.importSessionTitle}>
+              {item.title || t('untitledChat')}
+            </span>
+            <span className={styles.importSessionMeta}>
+              {t('historyImportMessageCount', { count: String(item.messageCount) })}
+            </span>
+          </label>
+        ))}
+        {scanning && sessions.length === 0 ? (
+          <div className={styles.importConfirmText}>{t('sessionLoading')}</div>
+        ) : null}
+      </div>
     </Modal>
   )
 }
@@ -829,9 +831,25 @@ const useHistoryImport = () => {
     setBusy(true)
     setStatus(null)
     setScan({ scanning: true, sessions: [], progress: 0.02 })
-    void listHistoryArchive(selected, (value) => {
-      setScan((current) => (current ? { ...current, progress: value } : current))
-    })
+    void listHistoryArchive(
+      selected,
+      (value) => {
+        setScan((current) => (current ? { ...current, progress: value } : current))
+      },
+      // 每解析出一个会话立即追加进列表，边扫边显示，不必等全部扫完
+      (info) => {
+        setScan((current) =>
+          current
+            ? {
+                ...current,
+                sessions: current.sessions.some((item) => item.id === info.id)
+                  ? current.sessions
+                  : [...current.sessions, info],
+              }
+            : current
+        )
+      }
+    )
       .then((sessions) => {
         setScan({ scanning: false, sessions, progress: 1 })
         setChecked(new Set(sessions.map((item) => item.id)))

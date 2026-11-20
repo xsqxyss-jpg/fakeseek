@@ -58,14 +58,16 @@ export const importHistory = (
     return mergeHistory(() => importArchive(file, onProgress, selectedIds))
   })
 
-/** 扫描归档：返回会话列表供勾选，不写库。onProgress：0-1 字节进度。 */
+/** 扫描归档：返回会话列表供勾选，不写库。onProgress：0-1 字节进度。
+ *  onSession：每解析出一个会话立即回调，UI 可边扫边列出。 */
 export const listHistoryArchive = (
   file: File,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  onSession?: (info: ArchiveSessionInfo) => void
 ): Promise<ArchiveSessionInfo[]> =>
   enqueueBackup(async () => {
     const { listArchive } = await import('./history/importArchive.js')
-    return listArchive(file, onProgress)
+    return listArchive(file, onProgress, onSession)
   })
 
 /** 确认删除后调用：以空历史原子替换全部本地会话与附件，保留 API Key 和其他设置。 */

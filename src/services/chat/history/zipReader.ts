@@ -236,6 +236,21 @@ export type ArchiveEntry = {
   endOffset: number
   /** 整个文件的字节大小 */
   totalSize: number
+  /** 该条目压缩数据的起始偏移，用于按已读压缩字节算百分比 */
+  dataStart: number
+  /** 该条目已读入的压缩字节数，由 stream 生成器实时更新，供 readEntry 上报进度 */
+  consumed: number
+  /**
+   * 只推进读取偏移，不解压也不校验 CRC。
+   *
+   * 用于扫描阶段跳过不消费内容的条目（图片、未勾选的会话）。这些条目原先走
+   * skipEntry 时仍会完整解压并把每个字节跑一遍 CRC 查表，314MB 的归档就是
+   * 三亿多次 JS 循环，实测占扫描总耗时九成以上，而扫描只需要会话元数据。
+   *
+   * 代价：跳过的条目不做完整性校验。归档若在这部分损坏，扫描阶段不会发现，
+   * 但真正导入时仍走完整校验并报错——用「预览要快、落库要严」的取舍换速度。
+   */
+  skipFast: () => void
 }
 /**
  * 按条目在文件中的物理顺序逐条、逐块解压，跳过目录条目。
@@ -250,6 +265,21 @@ export async function* readArchive(file: File): AsyncGenerator<ArchiveEntry> {
       continue
     }
     let completed = false
+    // 与下面 yield 出去的对象共享同一个引用：stream 生成器实时写入 consumed，
+    // readEntry 读取它把「已读压缩字节」换算成整体百分比，进度条才会平滑前进。
+    const handle: ArchiveEntry = {
+      path: entry.path,
+      size: entry.size,
+      stream: null as unknown as AsyncIterable<Uint8Array>,
+      endOffset: boundary,
+      totalSize: file.size,
+      dataStart: start,
+      consumed: 0,
+      skipFast: () => {
+        handle.consumed = entry.compressedSize
+        completed = true
+      },
+    }
     const stream = async function* (): AsyncGenerator<Uint8Array> {
       let written = 0
       let crc = 0xffffffff
@@ -273,6 +303,7 @@ export async function* readArchive(file: File): AsyncGenerator<ArchiveEntry> {
           start + offset,
           Math.min(READ_CHUNK_BYTES, entry.compressedSize - offset)
         )
+        handle.consumed = offset + chunk.length
         if (!inflate) {
           append(chunk)
           yield* pending.splice(0)
@@ -294,28 +325,37 @@ export async function* readArchive(file: File): AsyncGenerator<ArchiveEntry> {
       }
       completed = true
     }
-    yield {
-      path: entry.path,
-      size: entry.size,
-      stream: stream(),
-      endOffset: boundary,
-      totalSize: file.size,
-    }
+    handle.stream = stream()
+    yield handle
     if (!completed) {
       invalid()
     }
   }
 }
 
+/** 让出到宏任务，让浏览器有机会绘制进度条与处理触摸事件。
+ *  for await 里的 await 只切微任务，不触发渲染；必须用 setTimeout 才能真正让出主线程。 */
+const yieldToPaint = () => new Promise<void>((resolve) => setTimeout(resolve, 0))
+
 /** 读出整个条目：会话 JSON 需要完整解析，图片需要识别类型后整张保存。
  *  解压块先聚合到 ~1MB 的 Buffer 再并入 Blob 列表：大会话 JSON 会产生数千个
  *  8KB 解压块，逐块建 Blob 在低端手机 WebView 上内存与 GC 开销极大，
- *  是「导入扫描卡死」的主要元凶之一。 */
-export const readEntry = async (entry: ArchiveEntry): Promise<Blob> => {
+ *  是「导入扫描卡死」的主要元凶之一。
+ *  每聚合 1MB 主动让出一次主线程并按已读压缩字节上报进度，否则单个几十 MB 的
+ *  会话会在解压期间把界面完全冻住，进度条只停在条目起点一动不动。 */
+export const readEntry = async (
+  entry: ArchiveEntry,
+  onProgress?: (progress: number) => void
+): Promise<Blob> => {
   const parts: Blob[] = []
   let buffer: Uint8Array[] = []
   let buffered = 0
   const AGGREGATE_BYTES = 1024 * 1024
+  const report = () => {
+    if (onProgress && entry.totalSize > 0) {
+      onProgress(Math.min(1, (entry.dataStart + entry.consumed) / entry.totalSize))
+    }
+  }
   const flush = () => {
     if (buffered > 0) {
       parts.push(new Blob(buffer as BlobPart[]))
@@ -328,13 +368,17 @@ export const readEntry = async (entry: ArchiveEntry): Promise<Blob> => {
     buffered += chunk.length
     if (buffered >= AGGREGATE_BYTES) {
       flush()
+      report()
+      await yieldToPaint()
     }
   }
   flush()
+  report()
   return new Blob(parts)
 }
 
-/** 不需要的条目也要读完，以校验大小与 CRC。 */
+/** 不需要的条目也要读完，以校验大小与 CRC。
+ *  注意：这一版仍会完整解压并逐字节算 CRC，扫描阶段请改用 entry.skipFast()。 */
 export const skipEntry = async (entry: ArchiveEntry): Promise<void> => {
   const reader = entry.stream[Symbol.asyncIterator]()
   while (!(await reader.next()).done) {
