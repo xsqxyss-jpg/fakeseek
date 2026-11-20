@@ -1,0 +1,105 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+  box-sizing: border-box;
+  background-color: var(--dsw-alias-bg-base, #ffffff);
+  color: var(--dsw-alias-label-primary, #1f2328);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  text-align: center;
+}
+
+.card {
+  max-width: 480px;
+  width: 100%;
+  padding: 24px;
+  border-radius: 12px;
+  background-color: var(--dsw-alias-bg-layer-2, #f6f8fa);
+  border: 1px solid var(--dsw-alias-border-subtle, #d0d7de);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--dsw-alias-state-error-primary, #cf222e);
+}
+
+.message {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 12px;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-secondary, #57606a);
+  background-color: var(--dsw-alias-bg-base, #ffffff);
+  border-radius: 6px;
+  border: 1px solid var(--dsw-alias-border-subtle, #d0d7de);
+  word-break: break-all;
+  white-space: pre-wrap;
+  text-align: left;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.ua {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--dsw-alias-label-dimmed, #8c959f);
+  word-break: break-all;
+  text-align: left;
+  width: 100%;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.buttonReload {
+  flex: 1;
+  height: 40px;
+  border-radius: 8px;
+  border: none;
+  background-color: var(--dsw-alias-button-primary-fill, #0969da);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.buttonReload:active {
+  opacity: 0.8;
+}
+
+.buttonClear {
+  flex: 1;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid var(--dsw-alias-border-subtle, #d0d7de);
+  background-color: transparent;
+  color: var(--dsw-alias-state-error-primary, #cf222e);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.buttonClear:active {
+  background-color: rgba(207, 34, 46, 0.1);
+}

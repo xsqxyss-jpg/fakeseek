@@ -17,15 +17,46 @@ export type UserLocation = {
 }
 
 const regions = new Set(regionCodes)
-const regionNames = {
-  'zh-CN': new Intl.DisplayNames(['zh-CN'], { type: 'region' }),
-  'en-US': new Intl.DisplayNames(['en-US'], { type: 'region' }),
+
+let displayNamesMap: Record<'zh-CN' | 'en-US', Intl.DisplayNames | null | undefined> = {
+  'zh-CN': undefined,
+  'en-US': undefined,
 }
 
-export const getRegionName = (code: string, locale: 'zh-CN' | 'en-US'): string =>
-  regions.has(code)
-    ? (regionNameOverrides[locale][code] ?? regionNames[locale].of(code) ?? code)
-    : ''
+const getDisplayNameInstance = (locale: 'zh-CN' | 'en-US'): Intl.DisplayNames | null => {
+  if (displayNamesMap[locale] === undefined) {
+    try {
+      if (typeof Intl !== 'undefined' && typeof Intl.DisplayNames === 'function') {
+        displayNamesMap[locale] = new Intl.DisplayNames([locale], { type: 'region' })
+      } else {
+        displayNamesMap[locale] = null
+      }
+    } catch {
+      displayNamesMap[locale] = null
+    }
+  }
+  return displayNamesMap[locale] ?? null
+}
+
+export const getRegionName = (code: string, locale: 'zh-CN' | 'en-US'): string => {
+  if (!regions.has(code)) {
+    return ''
+  }
+  const override = regionNameOverrides[locale]?.[code]
+  if (override) {
+    return override
+  }
+  try {
+    const dn = getDisplayNameInstance(locale)
+    const name = dn?.of(code)
+    if (name) {
+      return name
+    }
+  } catch {
+    // 降级直接返回 code，绝不向外抛异常
+  }
+  return code
+}
 
 export const normalizeLocation = (value: unknown): UserLocation | null => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {

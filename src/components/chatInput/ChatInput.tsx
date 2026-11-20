@@ -123,6 +123,7 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   const dragging = useFileDrop(acceptFiles)
 
   /** 转写结果插入到光标处，并把光标移到插入内容之后 */
+  const [voiceCanceling, setVoiceCanceling] = useState(false)
   const voice = useVoiceInput((transcript) => {
     const textarea = textareaRef.current
     const current = getDraft(sessionId).text
@@ -206,7 +207,11 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
             setAttachOpen(false)
           }}
           onKeyDown={(event) => {
-            if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+            if (
+              event.key === 'Enter' &&
+              (event.ctrlKey || event.metaKey) &&
+              !event.nativeEvent.isComposing
+            ) {
               event.preventDefault()
               send()
             }
@@ -219,7 +224,14 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
             }
           }}
         />
-        {recording && isMobile ? <Spectrum getAnalyser={voice.getAnalyser} /> : null}
+        {recording && isMobile ? (
+          <div className={styles.recordingOverlay}>
+            <Spectrum getAnalyser={voice.getAnalyser} />
+            <div className={clsx(styles.recordingTip, voiceCanceling && styles.recordingTipCancel)}>
+              {voiceCanceling ? t('voiceInputReleaseToCancel') : t('voiceInputRecording')}
+            </div>
+          </div>
+        ) : null}
         <div className={styles.mirror} aria-hidden>
           {`${text}\n`}
         </div>
@@ -337,6 +349,7 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
               status={voice.status}
               disabled={!voice.available}
               seconds={voice.seconds}
+              isMobile={isMobile}
               onClick={() => {
                 if (
                   voice.status !== 'idle' ||
@@ -345,6 +358,25 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
                   void voice.toggle()
                 }
               }}
+              onPressStart={() => {
+                if (
+                  voice.status !== 'idle' ||
+                  (!useChatStore.getState().importingHistory && ensureApiKey())
+                ) {
+                  void voice.start()
+                }
+              }}
+              onPressEnd={(canceled) => {
+                if (canceled) {
+                  voice.cancel()
+                } else {
+                  void voice.stop()
+                }
+              }}
+              onPressCancel={() => {
+                voice.cancel()
+              }}
+              onSlideCancelChange={setVoiceCanceling}
             />
           )}
         </div>

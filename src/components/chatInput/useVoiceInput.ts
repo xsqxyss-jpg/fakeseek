@@ -96,12 +96,11 @@ export const useVoiceInput = (onText: (text: string) => void) => {
     }
   }, [cancel])
 
-  const toggle = useCallback(async () => {
+  const start = useCallback(async () => {
     if (!AVAILABLE) {
       return
     }
     if (status === 'recording') {
-      await finish()
       return
     }
     if (status === 'transcribing') {
@@ -128,7 +127,24 @@ export const useVoiceInput = (onText: (text: string) => void) => {
         showToast(describeRecordingError(error))
       }
     }
-  }, [status, finish, cancel])
+  }, [status, cancel, finish])
+
+  const stop = finish
+
+  const toggle = useCallback(async () => {
+    if (!AVAILABLE) {
+      return
+    }
+    if (status === 'recording') {
+      await finish()
+      return
+    }
+    if (status === 'transcribing') {
+      cancel()
+      return
+    }
+    await start()
+  }, [status, finish, cancel, start])
 
   useEffect(() => {
     if (status !== 'recording') {
@@ -148,5 +164,5 @@ export const useVoiceInput = (onText: (text: string) => void) => {
   /** 当前录音的频谱分析节点，未录音时为 null */
   const getAnalyser = useCallback(() => recordingRef.current?.analyser ?? null, [])
 
-  return { status, seconds, getAnalyser, toggle, cancel, available: AVAILABLE }
+  return { status, seconds, getAnalyser, toggle, start, stop, cancel, available: AVAILABLE }
 }

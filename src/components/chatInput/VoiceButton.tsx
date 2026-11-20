@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import clsx from 'clsx'
 import { useTranslate } from '../../i18n/index.js'
 import { IconMicFill16, IconMicOutline16 } from '../base/icons.js'
@@ -16,25 +17,123 @@ export const VoiceButton = ({
   status,
   disabled = false,
   seconds,
+  isMobile = false,
   onClick,
+  onPressStart,
+  onPressEnd,
+  onPressCancel,
+  onSlideCancelChange,
 }: {
   status: VoiceInputStatus
   /** 非安全上下文中按钮置灰，tooltip 提示录音需要 HTTPS */
   disabled?: boolean
   /** 本次录音已录秒数，录音中显示在按钮左侧 */
   seconds: number
+  /** 移动端长按录音，桌面端点击切换 */
+  isMobile?: boolean
   onClick: () => void
+  onPressStart?: () => void
+  onPressEnd?: (canceled: boolean) => void
+  onPressCancel?: () => void
+  onSlideCancelChange?: (canceling: boolean) => void
 }) => {
   const t = useTranslate()
   const recording = status === 'recording'
 
+  const startYRef = useRef<number | null>(null)
+  const isPressedRef = useRef(false)
+  const isCancelingRef = useRef(false)
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isMobile || disabled) {
+      return
+    }
+    if (event.button !== 0) {
+      return
+    }
+    event.preventDefault()
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId)
+    } catch {
+      // ignore
+    }
+    startYRef.current = event.clientY
+    isPressedRef.current = true
+    isCancelingRef.current = false
+    onSlideCancelChange?.(false)
+    onPressStart?.()
+  }
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isMobile || !isPressedRef.current || startYRef.current === null) {
+      return
+    }
+    event.preventDefault()
+    const deltaY = startYRef.current - event.clientY
+    const canceling = deltaY > 60
+    if (canceling !== isCancelingRef.current) {
+      isCancelingRef.current = canceling
+      onSlideCancelChange?.(canceling)
+    }
+  }
+
+  const handlePointerUp = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isMobile || !isPressedRef.current) {
+      return
+    }
+    event.preventDefault()
+    try {
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId)
+      }
+    } catch {
+      // ignore
+    }
+    const wasCanceling = isCancelingRef.current
+    isPressedRef.current = false
+    startYRef.current = null
+    isCancelingRef.current = false
+    onSlideCancelChange?.(false)
+    onPressEnd?.(wasCanceling)
+  }
+
+  const handlePointerCancel = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isMobile || !isPressedRef.current) {
+      return
+    }
+    event.preventDefault()
+    try {
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId)
+      }
+    } catch {
+      // ignore
+    }
+    isPressedRef.current = false
+    startYRef.current = null
+    isCancelingRef.current = false
+    onSlideCancelChange?.(false)
+    onPressCancel?.()
+  }
+
+  const handlePointerLeave = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isMobile || !isPressedRef.current) {
+      return
+    }
+    handlePointerCancel(event)
+  }
+
   const label = disabled
     ? t('voiceInputRequiresHttps')
     : recording
-      ? t('voiceInputStop')
+      ? isMobile
+        ? t('voiceInputReleaseToSend')
+        : t('voiceInputStop')
       : status === 'transcribing'
         ? t('voiceInputCancel')
-        : t('voiceInput')
+        : isMobile
+          ? t('voiceInputPressToTalk')
+          : t('voiceInput')
 
   return (
     <>
@@ -47,14 +146,20 @@ export const VoiceButton = ({
             recording && styles.recording,
             disabled && styles.disabled
           )}
+          style={isMobile ? { touchAction: 'none' } : undefined}
           aria-label={label}
           aria-pressed={recording}
           aria-disabled={disabled}
           onClick={() => {
-            if (!disabled) {
+            if (!disabled && !isMobile) {
               onClick()
             }
           }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
+          onPointerLeave={handlePointerLeave}
         >
           {recording ? (
             <span className={styles.active}>

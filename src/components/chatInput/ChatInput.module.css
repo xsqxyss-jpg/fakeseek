@@ -206,6 +206,31 @@
   visibility: hidden;
 }
 
+.recordingOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 6px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.recordingTip {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-secondary, #666);
+  user-select: none;
+  text-align: center;
+}
+
+.recordingTipCancel {
+  color: var(--dsw-alias-state-error-primary, #e5484d);
+  font-weight: 500;
+}
+
 @media not all and (min-width: 440px) {
   .textarea,
   .mirror {

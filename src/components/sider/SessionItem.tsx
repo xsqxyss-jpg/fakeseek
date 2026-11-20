@@ -1,10 +1,11 @@
 import clsx from 'clsx'
 import { memo, useState } from 'react'
 import { useTranslate } from '../../i18n/index.js'
-import { IconEditOutline16, IconEllipsisOutline16, IconTrashOutline16 } from '../base/icons.js'
+import { IconEditOutline16, IconEllipsisOutline16, IconTrashOutline16, IconDownloadOutline16 } from '../base/icons.js'
 import { IconPinOutline14 } from '../base/iconsExtra.js'
 import { renameSession, selectSession } from '../../services/chat/store.js'
 import { togglePinned } from '../../services/chat/pins.js'
+import { saveSessionAsImage } from '../../services/shareImage.js'
 import type { SessionSummary } from '../../services/chat/types.js'
 import { IconButton } from '../base/IconButton.js'
 import { Menu } from '../base/Menu.js'
@@ -27,7 +28,20 @@ export const SessionItem = memo(function SessionItem({
 }) {
   const t = useTranslate()
   const [editing, setEditing] = useState(false)
+  const [savingImage, setSavingImage] = useState(false)
   const displayTitle = session.title || t('untitledChat')
+
+  const handleSaveImage = async () => {
+    if (savingImage) {
+      return
+    }
+    setSavingImage(true)
+    try {
+      await saveSessionAsImage(session.id)
+    } finally {
+      setSavingImage(false)
+    }
+  }
 
   if (editing) {
     const finish = (title: string) => {
@@ -103,6 +117,16 @@ export const SessionItem = memo(function SessionItem({
               label: t('sessionItemMenuRenameOption'),
               icon: <IconEditOutline16 />,
               onSelect: () => setEditing(true),
+            },
+            {
+              key: 'saveImage',
+              label: t('sessionItemMenuSaveImage'),
+              icon: <IconDownloadOutline16 />,
+              onSelect: () => {
+                if (!savingImage) {
+                  void handleSaveImage()
+                }
+              },
             },
             {
               key: 'delete',
