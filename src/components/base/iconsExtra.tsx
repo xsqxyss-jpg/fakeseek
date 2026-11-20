@@ -181,3 +181,11 @@ export const IconFileOutline24 = () => (
     <path d="M14 3.2v5h5" />
   </svg>
 )
+
+/** 语音面板切回键盘输入 */
+export const IconKeyboardOutline24 = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden {...stroke} strokeWidth={1.5}>
+    <rect x="2.8" y="6.2" width="18.4" height="11.6" rx="2" />
+    <path d="M6.4 9.6h.01M9.6 9.6h.01M12.8 9.6h.01M16 9.6h.01M6.4 12.4h.01M9.6 12.4h.01M12.8 12.4h.01M16 12.4h.01M8 15.2h8" />
+  </svg>
+)

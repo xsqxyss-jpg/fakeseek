@@ -5,7 +5,7 @@ import {
   IconStopFill16,
   IconThinkOutline14,
 } from '../base/icons.js'
-import { IconPlusCircleOutline24, IconArrowUp24, IconCameraOutline24, IconImageOutline24, IconFileOutline24 } from '../base/iconsExtra.js'
+import { IconPlusCircleOutline24, IconArrowUp24, IconCameraOutline24, IconImageOutline24, IconFileOutline24, IconKeyboardOutline24 } from '../base/iconsExtra.js'
 import { setModel, setSearch, setThinking, useSettings, getWallpaperTextColor } from '../../services/settings.js'
 import { hitRate, useUsage } from '../../services/chat/usage.js'
 import { BUILTIN_MODELS, cachedModels, fetchModels, type ModelOption } from '../../services/api/models.js'
@@ -30,6 +30,7 @@ import { ACCEPT, useUploads } from '../../services/attachments.js'
 import { DraftAttachments } from './DraftAttachments.js'
 import { useVoiceInput } from './useVoiceInput.js'
 import { VoiceButton } from './VoiceButton.js'
+import { VoiceHoldPanel } from './VoiceHoldPanel.js'
 import { Spectrum } from './Spectrum.js'
 import { useTranslate } from '../../i18n/index.js'
 import { closeMorePanel, useMorePanel } from './morePanelState.js'
@@ -72,6 +73,8 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   const morePanelOpen = useMorePanel((state) => state.open)
   /** ⊕ 附件面板展开状态（官方行为：拍照 / 相册 / 文件三选） */
   const [attachOpen, setAttachOpen] = useState(false)
+  /** 移动端语音面板：点麦克风进入「按住说话」态（此时尚未录音），再长按才收音 */
+  const [voiceMode, setVoiceMode] = useState(false)
 
   useLayoutEffect(() => {
     const toggles = togglesRef.current
@@ -190,51 +193,79 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
     >
       <DraftAttachments items={attachments} onRetry={retryFile} onRemove={removeFile} />
       <div className={styles.textareaWrapper}>
-        <textarea
-          ref={textareaRef}
-          className={clsx(styles.textarea, recording && isMobile && styles.textareaHidden)}
-          placeholder={t('chatInputPlaceholderChat')}
-          rows={2}
-          // 移动端不自动聚焦，避免一打开就弹出键盘
-          autoFocus={!isMobile}
-          disabled={importingHistory}
-          value={text}
-          // 字色直接写行内 style：变量在部分端上被级联吞掉，行内没有中间层
-          style={wpInputColor ? { color: wpInputColor } : undefined}
-          onChange={(event) => setText(event.target.value)}
-          onFocus={() => {
-            closeMorePanel()
-            setAttachOpen(false)
-          }}
-          onKeyDown={(event) => {
-            if (
-              event.key === 'Enter' &&
-              (event.ctrlKey || event.metaKey) &&
-              !event.nativeEvent.isComposing
-            ) {
-              event.preventDefault()
-              send()
-            }
-          }}
-          onPaste={(event) => {
-            const files = Array.from(event.clipboardData.files)
-            if (files.length > 0) {
-              event.preventDefault()
-              acceptFiles(files)
-            }
-          }}
-        />
-        {recording && isMobile ? (
+        {voiceMode && isMobile ? (
+          <VoiceHoldPanel
+            recording={recording}
+            canceling={voiceCanceling}
+            disabled={!voice.available || importingHistory}
+            onPressStart={() => {
+              if (
+                voice.status === 'idle' &&
+                !useChatStore.getState().importingHistory &&
+                ensureApiKey()
+              ) {
+                void voice.start()
+              }
+            }}
+            onPressEnd={(canceled) => {
+              if (canceled) {
+                voice.cancel()
+              } else {
+                void voice.stop()
+              }
+            }}
+            onPressCancel={() => voice.cancel()}
+            onSlideCancelChange={setVoiceCanceling}
+          />
+        ) : (
+          <textarea
+            ref={textareaRef}
+            className={styles.textarea}
+            placeholder={t('chatInputPlaceholderChat')}
+            rows={2}
+            // 移动端不自动聚焦，避免一打开就弹出键盘
+            autoFocus={!isMobile}
+            disabled={importingHistory}
+            value={text}
+            // 字色直接写行内 style：变量在部分端上被级联吞掉，行内没有中间层
+            style={wpInputColor ? { color: wpInputColor } : undefined}
+            onChange={(event) => setText(event.target.value)}
+            onFocus={() => {
+              closeMorePanel()
+              setAttachOpen(false)
+            }}
+            onKeyDown={(event) => {
+              if (
+                event.key === 'Enter' &&
+                (event.ctrlKey || event.metaKey) &&
+                !event.nativeEvent.isComposing
+              ) {
+                event.preventDefault()
+                send()
+              }
+            }}
+            onPaste={(event) => {
+              const files = Array.from(event.clipboardData.files)
+              if (files.length > 0) {
+                event.preventDefault()
+                acceptFiles(files)
+              }
+            }}
+          />
+        )}
+        {voiceMode && isMobile && recording ? (
           <div className={styles.recordingOverlay}>
             <Spectrum getAnalyser={voice.getAnalyser} />
             <div className={clsx(styles.recordingTip, voiceCanceling && styles.recordingTipCancel)}>
-              {voiceCanceling ? t('voiceInputReleaseToCancel') : t('voiceInputRecording')}
+              {t('voiceInputTimer', { seconds: voice.seconds })}
             </div>
           </div>
         ) : null}
-        <div className={styles.mirror} aria-hidden>
-          {`${text}\n`}
-        </div>
+        {!voiceMode || !isMobile ? (
+          <div className={styles.mirror} aria-hidden>
+            {`${text}\n`}
+          </div>
+        ) : null}
       </div>
       <div className={styles.functionRow}>
         {/* 深度思考 / 智能搜索开关，tooltip 在按钮上方 */}
@@ -344,13 +375,32 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
             >
               <IconArrowUp24 />
             </button>
+          ) : voiceMode && isMobile ? (
+            /* 语音面板态：点击切回键盘输入，官方行为 */
+            <button
+              type="button"
+              className={styles.attachButton}
+              aria-label={t('voiceInputBackToKeyboard')}
+              onClick={() => {
+                voice.cancel()
+                setVoiceMode(false)
+              }}
+            >
+              <IconKeyboardOutline24 />
+            </button>
           ) : (
             <VoiceButton
               status={voice.status}
               disabled={!voice.available}
               seconds={voice.seconds}
-              isMobile={isMobile}
               onClick={() => {
+                // 移动端：点一下进入「按住说话」面板，不直接录音
+                if (isMobile) {
+                  setVoiceMode(true)
+                  closeMorePanel()
+                  setAttachOpen(false)
+                  return
+                }
                 if (
                   voice.status !== 'idle' ||
                   (!useChatStore.getState().importingHistory && ensureApiKey())
@@ -358,25 +408,6 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
                   void voice.toggle()
                 }
               }}
-              onPressStart={() => {
-                if (
-                  voice.status !== 'idle' ||
-                  (!useChatStore.getState().importingHistory && ensureApiKey())
-                ) {
-                  void voice.start()
-                }
-              }}
-              onPressEnd={(canceled) => {
-                if (canceled) {
-                  voice.cancel()
-                } else {
-                  void voice.stop()
-                }
-              }}
-              onPressCancel={() => {
-                voice.cancel()
-              }}
-              onSlideCancelChange={setVoiceCanceling}
             />
           )}
         </div>

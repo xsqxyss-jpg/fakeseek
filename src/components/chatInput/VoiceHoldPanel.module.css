@@ -1,0 +1,52 @@
+/* 「按住说话」面板：占据原 textarea 区域，比输入框高，文字垂直居中 */
+.hold {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  /* 比两行输入框更高，贴近官方面板比例 */
+  min-height: 132px;
+  margin: 0;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--dsw-alias-label-primary, #1a1a1a);
+  font: inherit;
+  /* 触摸时禁止滚动 / 长按选择 / 系统手势干扰 */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  cursor: pointer;
+}
+
+.label {
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+  transition: color 0.15s ease;
+}
+
+/* 录音中：文字换成提示语，颜色跟随主题 */
+.active .label {
+  color: var(--dsw-alias-label-primary, #1a1a1a);
+}
+
+/* 已越过取消阈值：整块文字转警示色 */
+.canceling .label {
+  color: var(--dsw-alias-state-error-primary, #e5484d);
+}
+
+.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@media not all and (min-width: 440px) {
+  .hold {
+    min-height: 116px;
+  }
+}
