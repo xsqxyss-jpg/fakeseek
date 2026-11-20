@@ -9,7 +9,6 @@ import {
   isZipFile,
   readArchive,
   readEntry,
-  skipEntry,
   type ArchiveEntry,
 } from './zipReader.js'
 
@@ -39,6 +38,25 @@ const imageType = (bytes: Uint8Array): string => {
     return 'image/avif'
   }
   return ''
+}
+
+/**
+ * 进度回调节流：整数百分比每变 1% 才转发一次。
+ * 条目内的解压进度是逐 MB 上报的，82 张图 ≈ 290 次回调；每次都 setState 会让
+ * 设置页整页重渲染，实测在模拟器上拖慢全量导入约 5 秒。节流后全程 ≤100 次。
+ */
+const throttleProgress = (onProgress?: (progress: number) => void) => {
+  if (!onProgress) {
+    return undefined
+  }
+  let last = -1
+  return (value: number) => {
+    const percent = Math.min(100, Math.max(0, Math.floor(value * 100)))
+    if (percent !== last) {
+      last = percent
+      onProgress(Math.min(1, value))
+    }
+  }
 }
 
 const readJson = async (
@@ -206,38 +224,65 @@ export const importArchive = async (
   let index: SessionIndexEntry[] | undefined
   let currentSessionId: string | undefined
 
-  const saveImage = async (entry: ArchiveEntry, id: string) => {
-    if (stored.has(id)) {
-      await skipEntry(entry)
+  // 批量写 IndexedDB 暂存（每 8 张图或满 8MB 刷一次），减少安卓闪存事务 fsync 次数
+  const FILE_BATCH_COUNT = 8
+  const FILE_BATCH_BYTES = 8 * 1024 * 1024
+  let pendingFiles: db.StoredFile[] = []
+  let pendingBytes = 0
+  const flushFiles = async () => {
+    if (pendingFiles.length === 0) {
       return
     }
-    const data = await readEntry(entry)
-    const type = imageType(new Uint8Array(await data.slice(0, 16).arrayBuffer()))
-    await db.saveStagingFiles([{ id, blob: new Blob([data], { type }) }])
-    stored.set(id, type)
+    const batch = pendingFiles
+    pendingFiles = []
+    pendingBytes = 0
+    await db.saveStagingFiles(batch)
   }
 
+  const saveImage = async (
+    entry: ArchiveEntry,
+    id: string,
+    entryProgress?: (progress: number) => void
+  ) => {
+    if (stored.has(id)) {
+      entry.skipFast()
+      return
+    }
+    const data = await readEntry(entry, entryProgress)
+    const type = imageType(new Uint8Array(await data.slice(0, 16).arrayBuffer()))
+    pendingFiles.push({ id, blob: new Blob([data], { type }) })
+    pendingBytes += data.size
+    stored.set(id, type)
+    if (pendingFiles.length >= FILE_BATCH_COUNT || pendingBytes >= FILE_BATCH_BYTES) {
+      await flushFiles()
+    }
+  }
+
+  const throttled = throttleProgress(onProgress)
   try {
     for await (const entry of readArchive(file)) {
       const { path } = entry
       const sessionId = parseSessionPath(path)
+      const entryProgress = throttled
+        ? (value: number) => throttled(Math.min(1, value))
+        : undefined
       if (!manifest) {
         if (path !== MANIFEST_PATH) {
           fail('backupUnrecognized')
         }
-        checkManifest(await readJson(entry))
+        checkManifest(await readJson(entry, entryProgress))
         manifest = true
       } else if (path === USER_PATH && !index && imported.size === 0) {
         // 账号信息（已脱敏）不导入；文件可能缺失。
-        await skipEntry(entry)
+        entry.skipFast()
       } else if (sessionId !== null && !index) {
-        // 勾选过滤：未勾选的会话直接跳过字节流，不做 JSON 解析与对象转换
+        // 勾选过滤：未勾选的会话直接跳过偏移，不解压不算 CRC
         if (selectedIds && !selectedIds.has(sessionId)) {
           skipped.add(sessionId)
           currentSessionId = sessionId
-          await skipEntry(entry)
+          entry.skipFast()
         } else {
-          const local = toLocalSession(readSessionFile(await readJson(entry)))
+          const local = toLocalSession(readSessionFile(await readJson(entry, entryProgress)))
           if (local.session.id !== sessionId || imported.has(sessionId)) {
             fail('backupIncomplete')
           }
@@ -250,7 +295,7 @@ export const importArchive = async (
           await new Promise((resolve) => setTimeout(resolve, 0))
         }
       } else if (path === INDEX_PATH && !index) {
-        index = readSessionIndex(await readJson(entry))
+        index = readSessionIndex(await readJson(entry, entryProgress))
       } else if (
         index
           ? imported.has(/^chat_sessions\/([^/]+)_files\//.exec(path)?.[1] ?? '')
@@ -258,18 +303,23 @@ export const importArchive = async (
       ) {
         // 没有被引用的条目不保存，引用了但缺失的图片只展示文件名。
         const id = images.get(path)
-        await (id === undefined ? skipEntry(entry) : saveImage(entry, id))
+        if (id === undefined) {
+          entry.skipFast()
+        } else {
+          await saveImage(entry, id, entryProgress)
+        }
       } else if (/^chat_sessions\//.test(path)) {
-        // 未勾选会话的 JSON 或图片条目（交错出现）：跳过，不视为异常
-        await skipEntry(entry)
+        // 未勾选会话的 JSON 或图片条目（交错出现）：直接跳过偏移，不视为异常
+        entry.skipFast()
       } else {
         fail('backupIncomplete')
       }
       // 每处理完一个条目上报一次字节进度；条目消费完后 endOffset 才有效
-      if (onProgress) {
-        onProgress(Math.min(1, entry.endOffset / entry.totalSize))
+      if (throttled) {
+        throttled(Math.min(1, entry.endOffset / entry.totalSize))
       }
     }
+    await flushFiles()
   } catch (error) {
     throw error instanceof ArchiveError ? new BackupError('backupIncomplete') : error
   }

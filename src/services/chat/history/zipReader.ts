@@ -1,8 +1,8 @@
 import { Inflate } from 'fflate'
 
 const READ_CHUNK_BYTES = 256 * 1024
-// 控制每轮同步解压的工作量；输出交给调用方保存后才继续读取。
-const INFLATE_CHUNK_BYTES = 8 * 1024
+// 控制每轮同步解压的工作量；64KB 相比 8KB 减少 8 倍 async generator yield 调度开销。
+const INFLATE_CHUNK_BYTES = 64 * 1024
 
 /** ZIP 结构损坏或使用了不支持的特性 */
 export class ArchiveError extends Error {
@@ -289,8 +289,8 @@ export async function* readArchive(file: File): AsyncGenerator<ArchiveEntry> {
         if (written > entry.size) {
           invalid()
         }
-        for (const byte of chunk) {
-          crc = (crc >>> 8) ^ crcTable[(crc ^ byte) & 0xff]
+        for (let i = 0, len = chunk.length; i < len; i++) {
+          crc = (crc >>> 8) ^ crcTable[(crc ^ chunk[i]) & 0xff]
         }
         if (chunk.length) {
           pending.push(chunk)
