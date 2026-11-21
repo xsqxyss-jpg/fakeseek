@@ -1,7 +1,7 @@
 {
-  "version": "1.0.9",
-  "versionCode": 10,
-  "url": "https://github.com/xsqxyss-jpg/fakeseek/releases/download/v1.0.9/fakeseek-v1.0.9.apk",
-  "notes": "导入历史大升级：选文件后先扫描归档，列出所有会话（标题+消息数），自由勾选要导入哪些（支持全选），确认后才开始导入并显示进度条。大文件（几百 MB）可以先扫描看看有什么，再挑需要的导入，时间和空间都省下来。另外：磁盘空间不足会单独提示。",
-  "publishedAt": "2026-11-19"
+  "version": "1.0.23",
+  "versionCode": 24,
+  "url": "https://gitee.com/smsqsss/fakeseek/releases/download/v1.0.23/fakeseek-v1.0.23.apk",
+  "notes": "修复部分机型白屏\n修复超长文本报错，新增三种可选拦截模式\n新增应用内更新",
+  "publishedAt": "2026-11-21"
 }
