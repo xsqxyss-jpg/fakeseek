@@ -1,7 +1,7 @@
 {
-  "version": "1.0.27",
-  "versionCode": 28,
-  "url": "https://gcore.jsdelivr.net/gh/xsqxyss-jpg/fakeseek@main/fakeseek-v1.0.27-final.apk",
-  "notes": "修复语音输入：转写完成后「按住说话」面板自动收起，转写文字直接出现在输入框\n修复历史会话导入卡在 2% 不动（进度按条目数推进）\n更新检查走 GitHub Pages 固定地址，发版后 10 分钟内生效",
-  "publishedAt": "2026-11-21"
+  "version": "1.0.28",
+  "versionCode": 29,
+  "url": "https://gcore.jsdelivr.net/gh/xsqxyss-jpg/fakeseek@main/fakeseek-v1.0.28-final.apk",
+  "notes": "修复点图片放大后按返回直接退出软件的问题：放大改为应用内查看层，点任意处或按返回收起，不再丢失输入内容\n修复历史上下文预算被旧报错残留锁死的问题（32K 时代残留不再误伤 1M 窗口模型）\n语音转写完成后自动收起按住说话面板",
+  "publishedAt": "2026-11-22"
 }
