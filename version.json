@@ -1,7 +1,7 @@
 {
-  "version": "1.0.26",
-  "versionCode": 27,
-  "url": "https://gcore.jsdelivr.net/gh/xsqxyss-jpg/fakeseek@main/fakeseek-v1.0.26-final.apk",
-  "notes": "更新检查改为 GitHub Pages 固定地址（10 分钟生效），以后发版不再换清单文件名\n修复历史会话导入卡在 2% 不动：进度改为按条目数推进\n其余同 1.0.25：白屏修复、超长文本三模式、应用内更新",
+  "version": "1.0.27",
+  "versionCode": 28,
+  "url": "https://gcore.jsdelivr.net/gh/xsqxyss-jpg/fakeseek@main/fakeseek-v1.0.27-final.apk",
+  "notes": "修复语音输入：转写完成后「按住说话」面板自动收起，转写文字直接出现在输入框\n修复历史会话导入卡在 2% 不动（进度按条目数推进）\n更新检查走 GitHub Pages 固定地址，发版后 10 分钟内生效",
   "publishedAt": "2026-11-21"
 }
