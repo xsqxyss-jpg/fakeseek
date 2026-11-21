@@ -1,7 +1,7 @@
 {
-  "version": "1.0.24",
-  "versionCode": 25,
-  "url": "https://gcore.jsdelivr.net/gh/xsqxyss-jpg/fakeseek@main/fakeseek-v1.0.24-final.apk",
-  "notes": "修复部分机型白屏（WebView 兼容）\n修复超长文本报错，单条 32K 限制自动处理，新增三种可选拦截模式\n新增应用内更新：启动自动检查、弹窗内实时进度条、断线自动重试，全程不跳系统下载器",
+  "version": "1.0.25",
+  "versionCode": 26,
+  "url": "https://gcore.jsdelivr.net/gh/xsqxyss-jpg/fakeseek@main/fakeseek-v1.0.25-final.apk",
+  "notes": "修复历史会话导入卡在 2% 不动的问题：进度改为按会话/文件条目数推进，不再按文件字节计算；归档目录改为一次性读入解析，大幅减少手机端异步读取开销\n其余与 1.0.24 相同：白屏修复、超长文本三模式、应用内更新",
   "publishedAt": "2026-11-21"
 }
