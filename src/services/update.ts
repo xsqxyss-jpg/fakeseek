@@ -7,11 +7,16 @@ import { showToast } from '../components/base/toastState.js'
  * 检查只在用户点按钮或启动静默检查时发生（各一次），不轮询。
  */
 
-/** 更新清单直链（GitHub 仓库 xsqxyss-jpg/fakeseek 的 main 分支，经 jsDelivr CDN 国内分流） */
-const VERSION_JSON_URL = 'https://gcore.jsdelivr.net/gh/xsqxyss-jpg/fakeseek@main/version-1025.json'
+/**
+ * 更新清单直链：GitHub Pages 固定文件名（缓存仅 10 分钟）。
+ * 每次发版只覆盖 version.json 内容，文件名永不变——老客户端才不会因为换了文件名被永久丢弃。
+ * 不要再改回 jsDelivr 的分支地址：它对 @main 缓存 12 小时且 purge 不生效，
+ * 发版后用户要等半天才收得到。
+ */
+const VERSION_JSON_URL = 'https://xsqxyss-jpg.github.io/fakeseek/version.json'
 
 /** 本 App 编译期版本号（与 SettingsDialog 的 APP_VERSION 保持一致） */
-const APP_VERSION_CODE = 26
+const APP_VERSION_CODE = 27
 
 /** 更新信息（检查成功后填充） */
 export type UpdateInfo = {
