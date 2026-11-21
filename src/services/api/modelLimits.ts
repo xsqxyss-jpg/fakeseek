@@ -133,12 +133,24 @@ export const learnContextLimit = (model: string, limit: number) => {
   if (value === undefined || value < 2048) {
     return
   }
+  // 模型换代（如 32K 时代的旧报错残留 → 1M 窗口的新模型）时，旧的 learned 上限
+  // 会把大窗口永久锁死成小窗口，白白预裁剪丢上下文。报错上限比 /models 声明的
+  // 窗口还大才可信；更小则只作参考，不覆盖声明的窗口。
+  const declared = entryFor(model).contextWindow
+  if (declared !== undefined && value < declared) {
+    return
+  }
   update(model, { learned: value })
 }
 
 /** 当前模型的上下文预算：实测上限优先，其次 /models 的 context_window，都没有时 undefined（不预裁剪） */
 export const contextBudgetFor = (model: string): number | undefined => {
   const entry = entryFor(model)
+  // 旧残留防护：learned 比声明的窗口还小，多半是上一个模型代次的报错残留，
+  // 此时信声明的窗口（撞墙时服务端报错会再教一次真实上限）。
+  if (entry.learned !== undefined && entry.contextWindow !== undefined && entry.learned < entry.contextWindow) {
+    return entry.contextWindow
+  }
   return entry.learned ?? entry.contextWindow
 }
 

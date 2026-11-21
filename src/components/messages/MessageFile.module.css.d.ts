@@ -7,6 +7,6 @@ declare const styles: {
   readonly "retryOverlay": string;
   readonly "spinner": string;
   readonly "spin": string;
+  readonly "imageZoomOverlay": string;
 };
 export = styles;
-

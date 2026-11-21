@@ -9,6 +9,11 @@ import { FileCard } from '../files/FileCard.js'
 import { useFileView } from '../files/useFileView.js'
 import styles from './MessageFile.module.css'
 
+/** 用内置查看层放大图片：不再开新窗口/新 tab——
+ *  WebView 里 target=_blank 的 blob 链接要么被丢弃要么丢出应用，
+ *  用户「放大后按返回直接退出软件、草稿丢失」就是它造成的。
+ *  内置查看层属于网页自己的状态，系统返回键经 __fakeseekGoBack 正常收起。 */
+
 /** 历史或失效附件的补传状态：只在还没有 serverId 时显示 */
 const useUploadState = (file: FileAttachment) =>
   useUploads((state) => {
@@ -36,6 +41,8 @@ export const MessageFile = ({
   const t = useTranslate()
   const { image, url, link } = useFileView(file.id, file.name)
   const [failedUrl, setFailedUrl] = useState<string | null>(null)
+  /** 内置放大查看层开关 */
+  const [zoomed, setZoomed] = useState(false)
   const upload = useUploadState(file)
   const uploading = upload?.status === 'uploading'
   const failed = upload?.status === 'error'
@@ -112,11 +119,29 @@ export const MessageFile = ({
       )
     }
 
-    // 正常态：链接到原件
+    // 正常态：点击用内置查看层放大（不再开新窗口）
     return link ? (
-      <a className={clsx(styles.image, styles.imageThumb)} {...link} title={file.name}>
-        {preview}
-      </a>
+      <>
+        <button
+          type="button"
+          className={clsx(styles.image, styles.imageThumb)}
+          title={file.name}
+          aria-label={file.name}
+          onClick={() => setZoomed(true)}
+        >
+          {preview}
+        </button>
+        {zoomed && url ? (
+          <div
+            className={styles.imageZoomOverlay}
+            role="dialog"
+            aria-label={file.name}
+            onClick={() => setZoomed(false)}
+          >
+            <img src={url} alt={file.name} onClick={(event) => event.stopPropagation()} />
+          </div>
+        ) : null}
+      </>
     ) : (
       // 原件还没加载出来（极短暂）
       <div className={styles.image} />
