@@ -1,7 +1,7 @@
 {
-  "version": "1.0.25",
-  "versionCode": 26,
-  "url": "https://gcore.jsdelivr.net/gh/xsqxyss-jpg/fakeseek@main/fakeseek-v1.0.25-final.apk",
-  "notes": "修复历史会话导入卡在 2% 不动的问题：进度改为按会话/文件条目数推进，不再按文件字节计算；归档目录改为一次性读入解析，大幅减少手机端异步读取开销\n其余与 1.0.24 相同：白屏修复、超长文本三模式、应用内更新",
+  "version": "1.0.26",
+  "versionCode": 27,
+  "url": "https://gcore.jsdelivr.net/gh/xsqxyss-jpg/fakeseek@main/fakeseek-v1.0.26-final.apk",
+  "notes": "更新检查改为 GitHub Pages 固定地址（10 分钟生效），以后发版不再换清单文件名\n修复历史会话导入卡在 2% 不动：进度改为按条目数推进\n其余同 1.0.25：白屏修复、超长文本三模式、应用内更新",
   "publishedAt": "2026-11-21"
 }
