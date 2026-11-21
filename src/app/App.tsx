@@ -19,7 +19,9 @@ import { Welcome } from '../components/session/Welcome.js'
 import { SettingsDialog } from '../components/settings/SettingsDialog.js'
 import { DisclaimerModal } from '../components/settings/DisclaimerModal.js'
 import { Toast } from '../components/base/Toast.js'
+import { UpdateModal } from '../components/base/UpdateModal.js'
 import { showToast } from '../components/base/toastState.js'
+import { bindUpdateBridge, silentCheckForUpdate } from '../services/update.js'
 import { onUploadNotice } from '../services/attachments.js'
 import { Button } from '../components/base/Button.js'
 import { stopReadAloud } from '../services/speech/readAloud.js'
@@ -210,6 +212,16 @@ export const App = () => {
     // 官方 App 风格：首屏不弹设置，未配 Key 由欢迎页引导卡提示；发送时仍会兜底弹出。
   }, [])
 
+  // 应用内更新：绑原生桥（update.ts 只在 Capacitor WebView 里生效），启动 3 秒后静默检查一次。
+  // 命中新版时 lastChecked 被填充，根层 UpdateModal 立即弹出更新说明（宝宝定：启动自动检测+直接提示）。
+  useEffect(() => {
+    bindUpdateBridge()
+    const timer = setTimeout(() => {
+      void silentCheckForUpdate()
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [])
+
   return (
     <>
       <div ref={frameRef} className={styles.frame}>
@@ -273,6 +285,7 @@ export const App = () => {
       </div>
       <SettingsDialog />
       <DisclaimerModal />
+      <UpdateModal />
       <Toast />
     </>
   )

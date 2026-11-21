@@ -155,7 +155,12 @@ const pick = (body: string, patterns: RegExp[]): number | undefined => {
 }
 
 export const getContextOverflow = (error: unknown): ContextOverflow | null => {
-  if (!(error instanceof ApiError) || error.status !== 400) {
+  if (!(error instanceof ApiError)) {
+    return null
+  }
+  // HTTP 400 = 服务端入口层拒收；status 未定义 = SSE 流内 error 事件（HTTP 200 +
+  // 流内报错，中转网关与官方部分场景如此）。后者此前被漏掉，原始报错直接怼给用户。
+  if (error.status !== 400 && error.status !== undefined) {
     return null
   }
   const { message } = error

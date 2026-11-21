@@ -8,6 +8,9 @@ export type Locale = 'zh-CN' | 'en-US'
 /** 主题偏好；默认跟随系统 */
 export type ThemePreference = 'light' | 'dark' | 'system'
 
+/** 超长单条输入的处理方式（互斥三选一）：关闭 / 自动转 txt 文档 / 自动分段发送 */
+export type LongInputMode = 'off' | 'file' | 'split'
+
 /** 本机设置，存 localStorage：API Key、语言、主题、位置、朗读音色、深度思考与智能搜索开关、侧边栏收起状态、上下文保留轮数 */
 type Settings = {
   apiKey: string | null
@@ -22,6 +25,8 @@ type Settings = {
   contextKeepRounds: number
   /** 超出保留轮数的历史是否压缩成摘要随请求携带（关闭则直接省略） */
   contextSummary: boolean
+  /** 单条超长文本的处理方式：off 原样发送 / file 自动转 txt 附件 / split 底层分段发送 */
+  longInputMode: LongInputMode
   /** 自定义头像（dataURL，压缩到 96px）；null = 默认字母头像 */
   userAvatar: string | null
   assistantAvatar: string | null
@@ -68,6 +73,7 @@ const KEYS = {
   siderCollapsed: 'chat-demo:sider-collapsed',
   contextKeepRounds: 'chat-demo:context-keep-rounds',
   contextSummary: 'chat-demo:context-summary',
+  longInputMode: 'chat-demo:long-input-mode',
   userAvatar: 'chat-demo:user-avatar',
   assistantAvatar: 'chat-demo:assistant-avatar',
   voiceMuted: 'chat-demo:voice-muted',
@@ -157,6 +163,10 @@ export const useSettings = create<Settings>(() => ({
   contextKeepRounds: initialContextKeepRounds(),
   // 未保存过时默认开启：选了保留轮数后旧历史压成摘要，不静默失忆。
   contextSummary: read(KEYS.contextSummary) !== 'false',
+  longInputMode: (() => {
+    const saved = read(KEYS.longInputMode)
+    return saved === 'file' || saved === 'split' ? saved : 'off'
+  })(),
   userAvatar: read(KEYS.userAvatar),
   assistantAvatar: read(KEYS.assistantAvatar),
   voiceMuted: read(KEYS.voiceMuted) === 'true',
@@ -226,6 +236,11 @@ export const setContextKeepRounds = (contextKeepRounds: number) => {
 export const setContextSummary = (contextSummary: boolean) => {
   write(KEYS.contextSummary, String(contextSummary))
   useSettings.setState({ contextSummary })
+}
+
+export const setLongInputMode = (longInputMode: LongInputMode) => {
+  write(KEYS.longInputMode, longInputMode)
+  useSettings.setState({ longInputMode })
 }
 
 export const setUserAvatar = (userAvatar: string | null) => {

@@ -321,6 +321,45 @@ const filesWithServerId = (
  * 传入 locations 时记录每个文件块的位置，供「服务端点名某张图不可用」时精确定位；
  * skip 里的附件（服务端已判定内容不可用）本轮不再携带。
  */
+/** 单条文本超过该估算 token 数时触发底层分段（留出余量，避开服务端 32768 单条上限） */
+const LONG_INPUT_SPLIT_TOKENS = 26000
+
+/** 按行优先切分超长文本，保证每段估算 token 不超上限 */
+const splitLongText = (text: string, maxTokens = LONG_INPUT_SPLIT_TOKENS): string[] => {
+  if (estimateTokens(text) <= maxTokens) {
+    return [text]
+  }
+  const chunks: string[] = []
+  let current = ''
+  const lines = text.split('\n')
+  const pushPiece = (piece: string) => {
+    if (!piece) {
+      return
+    }
+    if (current && estimateTokens(`${current}\n${piece}`) > maxTokens) {
+      chunks.push(current)
+      current = piece
+    } else {
+      current = current ? `${current}\n${piece}` : piece
+    }
+  }
+  for (const line of lines) {
+    if (estimateTokens(line) <= maxTokens) {
+      pushPiece(line)
+      continue
+    }
+    // 单行本身超长时按字符块切分（中文按 1 字符 ≈ 1 token 保守估算）
+    const step = Math.max(2000, Math.floor(maxTokens * 0.85))
+    for (let offset = 0; offset < line.length; offset += step) {
+      pushPiece(line.slice(offset, offset + step))
+    }
+  }
+  if (current) {
+    chunks.push(current)
+  }
+  return chunks.length > 0 ? chunks : [text]
+}
+
 export const toRequestMessages = (
   history: Message[],
   question: UserMessage,
@@ -348,8 +387,44 @@ export const toRequestMessages = (
       previousReminder = reminder
     }
   }
-  /** 推入 user 消息；locations 有值时按块下标登记其中的文件块 */
+  const splitEnabled = useSettings.getState().longInputMode === 'split'
+  /** 推入 user 消息；locations 有值时按块下标登记其中的文件块；开启分段模式时自动切片并插隐藏过渡回复 */
   const pushUser = (user: UserMessage, isCurrent: boolean) => {
+    const chunks =
+      splitEnabled && user.content ? splitLongText(user.content) : [user.content]
+    if (chunks.length > 1) {
+      const total = chunks.length
+      for (let i = 0; i < total - 1; i += 1) {
+        messages.push({
+          role: 'user',
+          content: `[长文本第 ${i + 1}/${total} 段，请先接收，不要展开回复，等最后一段发完再统一回答]\n\n${chunks[i]}`,
+        })
+        messages.push({
+          role: 'assistant',
+          content: [{ type: 'text', text: '收到，请发送下一段。' }],
+        })
+      }
+      const lastUser: UserMessage = {
+        ...user,
+        content: `[长文本第 ${total}/${total} 段（最后一段），请结合前面所有段落统一回答]\n\n${chunks[total - 1]}`,
+      }
+      const index = messages.length
+      const param = toUserParam(lastUser, skip)
+      if (locations && typeof param.content !== 'string') {
+        const withServerId = filesWithServerId(lastUser.files, skip)
+        param.content.forEach((block, blockIndex) => {
+          if (block.type !== 'image' && block.type !== 'document') {
+            return
+          }
+          const file = withServerId[blockIndex]
+          if (file) {
+            locations.set(fileBlockKey(index, blockIndex), { fileId: file.id, isCurrent })
+          }
+        })
+      }
+      messages.push(param)
+      return
+    }
     const index = messages.length
     const param = toUserParam(user, skip)
     if (locations && typeof param.content !== 'string') {

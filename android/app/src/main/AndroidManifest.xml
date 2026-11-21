@@ -43,4 +43,6 @@
     <!-- 语音输入：WebView 录音需要麦克风；Capacitor 的 onPermissionRequest 会向系统申请 -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- 应用内更新：下载 APK 并拉起系统安装器 -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 </manifest>

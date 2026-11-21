@@ -7,6 +7,7 @@ import {
 } from '../base/icons.js'
 import { IconPlusCircleOutline24, IconArrowUp24, IconCameraOutline24, IconImageOutline24, IconFileOutline24, IconKeyboardOutline24 } from '../base/iconsExtra.js'
 import { setModel, setSearch, setThinking, useSettings, getWallpaperTextColor } from '../../services/settings.js'
+import { estimateTokens } from '../../services/api/modelLimits.js'
 import { hitRate, useUsage } from '../../services/chat/usage.js'
 import { BUILTIN_MODELS, cachedModels, fetchModels, type ModelOption } from '../../services/api/models.js'
 import { useIsMobile } from '../../app/viewport.js'
@@ -163,10 +164,32 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
     if (!canSend) {
       return
     }
+    const latestDraft = getDraft(sessionId)
+    if (
+      useSettings.getState().longInputMode === 'file' &&
+      latestDraft.text.trim().length > 0 &&
+      estimateTokens(latestDraft.text) > 26000
+    ) {
+      if (!ensureApiKey()) {
+        return
+      }
+      const txtFile = new File([latestDraft.text], `long-text-${Date.now()}.txt`, {
+        type: 'text/plain;charset=utf-8',
+      })
+      // 先校验再清文本：校验失败（如附件数达上限）时保留原文，避免丢字
+      const addError = addDraftFiles(sessionId, [txtFile], useSettings.getState().apiKey ?? '')
+      if (addError) {
+        showToast(addError)
+        return
+      }
+      setDraftText(sessionId, '')
+      showToast({ key: 'longInputConvertedToFile' })
+      return
+    }
     if (
       useChatStore.getState().importingHistory ||
       voice.status !== 'idle' ||
-      !prepareDraftMessage(getDraft(sessionId), useUploads.getState().tasks)
+      !prepareDraftMessage(latestDraft, useUploads.getState().tasks)
     ) {
       return
     }

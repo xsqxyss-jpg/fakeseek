@@ -5,7 +5,12 @@ import { defineConfig } from '@rspack/cli'
 import { rspack, type Configuration } from '@rspack/core'
 
 const dev = process.env.NODE_ENV !== 'production'
-const targets = ['chrome >= 87', 'edge >= 105', 'safari >= 16', 'firefox >= 110']
+// JS 语法转译目标：Android System WebView 官方下限 Chrome 60（Capacitor 文档），
+// 国产 ROM 的 WebView 长期不更新，必须按 60 转译，否则可选链等语法直接 SyntaxError 白屏。
+const jsTargets = ['chrome >= 60', 'edge >= 105', 'safari >= 16', 'firefox >= 110']
+// CSS 目标保持 87：lightningcss 按目标删规则，降到 60 会把 :has/color-mix 等在构建期删掉，
+// 新设备上样式反而坏掉。老 WebView 上 CSS 只降级不改名（布局退化，不白屏）。
+const cssTargets = ['chrome >= 87', 'edge >= 105', 'safari >= 16', 'firefox >= 110']
 const root = path.dirname(fileURLToPath(import.meta.url))
 const { version } = JSON.parse(
   readFileSync(new URL('./package.json', import.meta.url), 'utf8')
@@ -13,7 +18,7 @@ const { version } = JSON.parse(
 
 const cssLoader = {
   loader: 'builtin:lightningcss-loader',
-  options: { targets },
+  options: { targets: cssTargets },
 }
 
 type ConfigOptions = {
@@ -57,7 +62,8 @@ export const createConfig = ({
       { test: /\.module\.css$/, type: 'css/module', use: [cssLoader] },
       { test: /\.css$/, exclude: /\.module\.css$/, type: 'css', use: [cssLoader] },
       {
-        test: /\.(j|t)sx?$/,
+        // 业务 TS/TSX：转译到老 WebView 兼容语法
+        test: /\.(ts|tsx)$/,
         exclude: /[\\/]node_modules[\\/]/,
         loader: 'builtin:swc-loader',
         options: {
@@ -66,9 +72,24 @@ export const createConfig = ({
             transform: { react: { runtime: 'automatic', development: dev } },
             externalHelpers: true,
           },
-          env: { targets },
+          env: { targets: jsTargets },
         },
         type: 'javascript/auto',
+      },
+      {
+        // 第三方依赖与纯 JS：同样过 swc。依赖包发布的是未转译产物（含 ?. ?? 等），
+        // 不转译的话 Chrome 60~86 的 WebView 解析 bundle 直接 SyntaxError = 纯白屏。
+        test: /\.(js|mjs|cjs)$/,
+        type: 'javascript/auto',
+        resolve: { fullySpecified: false },
+        loader: 'builtin:swc-loader',
+        options: {
+          jsc: {
+            parser: { syntax: 'ecmascript' },
+            externalHelpers: true,
+          },
+          env: { targets: jsTargets },
+        },
       },
       { test: /\.(woff2?|ttf)$/, type: 'asset/resource' },
     ],

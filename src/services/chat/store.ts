@@ -1276,8 +1276,11 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
         if (attempt < CONTEXT_TRIM_LIMIT && !receivedContent) {
           const overflow = getContextOverflow(error)
           if (overflow) {
-            // 服务端报的上限是当前部署的真实窗口：记下来，下一轮请求按它提前裁剪，不再先撞墙
-            if (overflow.limit) {
+            // 区分「单条用户输入超限（user input too long，如 32768）」与「整轮上下文超限」：
+            // 单条输入上限不能写进 learnContextLimit，否则会把模型原本的 1M 总上下文永久锁死成 32K。
+            const isSingleUserInputLimit =
+              error instanceof ApiError && /user\s+input\s+too\s+long/i.test(error.message)
+            if (overflow.limit && !isSingleUserInputLimit) {
               learnContextLimit(initial.model ?? currentModel(), overflow.limit)
             }
             const next = trimFactor * 2

@@ -5,8 +5,190 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
     <title>fakeseek</title>
+    <script>
+      // 老 WebView polyfill：必须内联在 bundle 之前（defer 脚本按序执行，这里是第一个）。
+      // 这些 API 是启动链硬依赖：Blob.text/arrayBuffer（导入）、Object.hasOwn/Array.at（store）。
+      ;(function () {
+        function def(obj, name, value) {
+          try {
+            if (obj && typeof obj[name] !== 'function') Object.defineProperty(obj, name, { value: value, writable: true, configurable: true })
+          } catch (e) { /* ignore */ }
+        }
+        if (typeof Object.hasOwn !== 'function') {
+          def(Object, 'hasOwn', function (o, p) {
+            return Object.prototype.hasOwnProperty.call(o, p)
+          })
+        }
+        if (typeof Array.prototype.at !== 'function') {
+          def(Array.prototype, 'at', function (i) {
+            var k = Math.trunc(i) || 0
+            var len = this.length >>> 0
+            var r = k >= 0 ? k : len + k
+            return r >= 0 && r < len ? this[r] : undefined
+          })
+          def(String.prototype, 'at', function (i) {
+            var k = Math.trunc(i) || 0
+            var len = this.length
+            var r = k >= 0 ? k : len + k
+            return r >= 0 && r < len ? this[r] : undefined
+          })
+        }
+        if (typeof Array.prototype.toReversed !== 'function') {
+          def(Array.prototype, 'toReversed', function () {
+            return Array.prototype.slice.call(this).reverse()
+          })
+        }
+        if (typeof Array.prototype.toSorted !== 'function') {
+          def(Array.prototype, 'toSorted', function (cmp) {
+            return Array.prototype.slice.call(this).sort(cmp)
+          })
+        }
+        if (typeof Array.prototype.flatMap !== 'function') {
+          def(Array.prototype, 'flatMap', function (f) {
+            return Array.prototype.concat.apply([], Array.prototype.map.call(this, f))
+          })
+        }
+        if (typeof Object.fromEntries !== 'function') {
+          def(Object, 'fromEntries', function (entries) {
+            var out = {}
+            var list = Array.from(entries)
+            for (var i = 0; i < list.length; i++) out[list[i][0]] = list[i][1]
+            return out
+          })
+        }
+        if (typeof Promise.allSettled !== 'function') {
+          def(Promise, 'allSettled', function (list) {
+            var wrapped = Array.from(list).map(function (p) {
+              return Promise.resolve(p).then(
+                function (v) { return { status: 'fulfilled', value: v } },
+                function (e) { return { status: 'rejected', reason: e } }
+              )
+            })
+            return Promise.all(wrapped)
+          })
+        }
+        if (typeof String.prototype.replaceAll !== 'function') {
+          def(String.prototype, 'replaceAll', function (search, replace) {
+            if (search instanceof RegExp) {
+              if (!search.global) throw new TypeError('replaceAll requires a global regex')
+              return this.replace(search, replace)
+            }
+            return this.split(String(search)).join(String(replace))
+          })
+        }
+        if (typeof String.prototype.matchAll !== 'function') {
+          def(String.prototype, 'matchAll', function (re) {
+            var self = this
+            var clone = new RegExp(re.source, re.global ? re.flags : re.flags + 'g')
+            var matches = []
+            var m
+            while ((m = clone.exec(self)) !== null) {
+              matches.push(m)
+            }
+            var index = 0
+            return {
+              [Symbol.iterator]: function () {
+                return {
+                  next: function () {
+                    return index < matches.length ? { done: false, value: matches[index++] } : { done: true }
+                  },
+                }
+              },
+            }
+          })
+        }
+        // Blob.text / Blob.arrayBuffer：Chrome 76 才有；老 WebView 上导入功能必需
+        if (typeof Blob !== 'undefined' && typeof Blob.prototype.text !== 'function') {
+          def(Blob.prototype, 'text', function () {
+            var self = this
+            return new Promise(function (resolve, reject) {
+              var fr = new FileReader()
+              fr.onload = function () { resolve(String(fr.result)) }
+              fr.onerror = function () { reject(fr.error) }
+              fr.readAsText(self)
+            })
+          })
+        }
+        if (typeof Blob !== 'undefined' && typeof Blob.prototype.arrayBuffer !== 'function') {
+          def(Blob.prototype, 'arrayBuffer', function () {
+            var self = this
+            return new Promise(function (resolve, reject) {
+              var fr = new FileReader()
+              fr.onload = function () { resolve(fr.result) }
+              fr.onerror = function () { reject(fr.error) }
+              fr.readAsArrayBuffer(self)
+            })
+          })
+        }
+        // crypto.randomUUID：Chrome 92 才有
+        try {
+          if (typeof crypto !== 'undefined' && typeof crypto.randomUUID !== 'function') {
+            def(crypto, 'randomUUID', function () {
+              return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, function (c) {
+                var n = +c
+                return (n ^ ((Math.random() * 16) >> (n / 4))).toString(16)
+              })
+            })
+          }
+        } catch (e) { /* ignore */ }
+      })()
+    </script>
+    <script>
+      // 白屏看门狗：React 挂载成功会调用 __fakeseekBootOk() 移除标记；10 秒后仍在 =
+      // bundle 语法/运行时崩了或加载失败，显示兜底提示（含最后一条报错）。
+      ;(function () {
+        var timer = setTimeout(function () {
+          var root = document.getElementById('root')
+          var marker = document.getElementById('boot-dead')
+          if (marker && (!root || root.childElementCount === 0)) {
+            marker.style.display = 'flex'
+            var detail = ''
+            try {
+              var last = localStorage.getItem('fakeseek:lastError')
+              if (last) detail = String(JSON.parse(last).message || '').slice(0, 200)
+            } catch (e) { /* ignore */ }
+            var el = document.getElementById('boot-dead-msg')
+            if (el) el.textContent = detail || '未能获取错误信息'
+          }
+        }, 10000)
+        window.__fakeseekBootOk = function () {
+          clearTimeout(timer)
+          var marker = document.getElementById('boot-dead')
+          if (marker && marker.parentNode) marker.parentNode.removeChild(marker)
+        }
+      })()
+    </script>
+    <style>
+      #boot-dead {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        background: #ffffff;
+        color: #0f172a;
+        font-family: system-ui, sans-serif;
+        padding: 24px;
+        text-align: center;
+      }
+      #boot-dead h2 { font-size: 17px; margin: 0; }
+      #boot-dead p { font-size: 14px; color: #475569; margin: 0; max-width: 420px; line-height: 1.6; }
+      #boot-dead code { font-size: 11px; color: #94a3b8; word-break: break-all; max-width: 420px; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <div id="boot-dead">
+      <h2>页面启动失败</h2>
+      <p>
+        本机系统 WebView 版本过旧（需要 Android System WebView / Chrome 60
+        以上）。请在系统设置中搜索「Android System WebView」并更新后重试；
+        部分机型需在应用商店更新「谷歌服务框架」相关组件。
+      </p>
+      <code id="boot-dead-msg"></code>
+    </div>
   </body>
 </html>

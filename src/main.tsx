@@ -118,3 +118,8 @@ createRoot(document.getElementById('root') as HTMLElement).render(
     <App />
   </ErrorBoundary>
 )
+
+// React 已挂载：解除 index.html 里的白屏看门狗
+if (typeof window.__fakeseekBootOk === 'function') {
+  window.__fakeseekBootOk()
+}

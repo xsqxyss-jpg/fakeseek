@@ -460,6 +460,21 @@
   color: var(--dsw-alias-label-secondary);
 }
 
+/* 长解析（JSON.parse/校验是同步长任务）期间进度条不动，用呼吸动画表达「还在跑」 */
+.importProgressRow[aria-busy='true'] .importProgressText {
+  animation: importTextBreath 1.6s ease-in-out infinite;
+}
+
+@keyframes importTextBreath {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
 /* 扫描出的会话勾选列表：限高滚动，行内标题 + 消息数 */
 .importSessionList {
   margin-top: 12px;

@@ -24,6 +24,13 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // 应用内更新桥：网页经 window.__fakeseekUpdate.checkVersion/download 调用，
+        // 结果走 window.__fakeseekUpdater 回调。代理只暴露两个方法，不暴露整个桥。
+        // （webView 定义在本方法后面 insets 段，此处直接声明供两段共用）
+        final WebView webView = getBridge().getWebView();
+        UpdateBridge updateBridge = new UpdateBridge(this, webView);
+        webView.addJavascriptInterface(new UpdateProxy(updateBridge), "__fakeseekUpdate");
+
         // 全屏沉浸：内容可以画到系统栏下面
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         getWindow().setStatusBarColor(Color.TRANSPARENT);
@@ -39,7 +46,6 @@ public class MainActivity extends BridgeActivity {
 
         // 把系统栏与键盘高度注入网页：WebView 里 env(safe-area-inset-*) 恒为 0，必须由原生给。
         // --safe-bottom 只算导航条；键盘高度单独给 --ime-height，配合 adjustResize 让视口自己缩。
-        final WebView webView = getBridge().getWebView();
         final View decor = getWindow().getDecorView();
         ViewCompat.setOnApplyWindowInsetsListener(decor, (view, insets) -> {
             Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -83,5 +89,24 @@ public class MainActivity extends BridgeActivity {
                         });
             }
         });
+    }
+
+    /** 网页可调用的最小代理：只暴露 version.json 检查与 APK 下载安装两个入口 */
+    private static class UpdateProxy {
+        private final UpdateBridge bridge;
+
+        UpdateProxy(UpdateBridge bridge) {
+            this.bridge = bridge;
+        }
+
+        @android.webkit.JavascriptInterface
+        public void checkVersion(final String url) {
+            bridge.fetchVersionJson(url);
+        }
+
+        @android.webkit.JavascriptInterface
+        public void download(final String url, final String title) {
+            bridge.startDownload(url, title);
+        }
     }
 }

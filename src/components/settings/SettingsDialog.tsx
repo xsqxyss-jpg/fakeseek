@@ -38,15 +38,18 @@ import {
   setContextSummary,
   setLocale,
   setLocation,
+  setLongInputMode,
   setThemePreference,
   setTtsVoice,
   useSettings,
+  type LongInputMode,
 } from '../../services/settings.js'
 import { useTranslate, type TranslationKey, type TranslationMessage } from '../../i18n/index.js'
 import { Button } from '../base/Button.js'
 import { Modal } from '../base/Modal.js'
 import { Select } from '../base/Select.js'
 import { showToast } from '../base/toastState.js'
+import { manualCheckUpdate } from '../base/UpdateModal.js'
 import { ApiKeyConfirm, ApiKeyField, useApiKeyEditor } from './ApiKeyField.js'
 import { AvatarSetting } from './AvatarSetting.js'
 import { FontSizeSetting } from './FontSizeSetting.js'
@@ -60,7 +63,7 @@ import {
 } from './settingsDialogState.js'
 import styles from './Settings.module.css'
 
-const APP_VERSION = '1.0.22 (23)'
+const APP_VERSION = '1.0.24 (25)'
 
 /**
  * 设置页（官方 App 风格）：移动端全屏、桌面居中大卡片。
@@ -68,6 +71,7 @@ const APP_VERSION = '1.0.22 (23)'
  */
 export const SettingsDialog = () => {
   const open = useSettingsDialog((state) => state.open)
+  // UpdateModal 挂在 App 根层（启动自动检查命中时设置页未开也要弹），此处不再重复挂
   return open ? <SettingsContent /> : null
 }
 
@@ -292,7 +296,12 @@ const SettingsHome = ({ onNavigate }: { onNavigate: (section: SettingsSection) =
           icon={<IconInfoOutline20 />}
           label={t('settingsCheckUpdate')}
           value={APP_VERSION}
-          onClick={() => showToast({ key: 'settingsLatestVersion' })}
+          onClick={() => {
+            // 真·检查更新：Gitee version.json 对比版本号；发现新版弹更新说明窗
+            void manualCheckUpdate(() => {
+              closeSettings()
+            })
+          }}
         />
         <NavRow
           icon={<IconTermsOutline20 />}
@@ -760,8 +769,27 @@ const ContextRoundsSetting = () => {
   const t = useTranslate()
   const contextKeepRounds = useSettings((state) => state.contextKeepRounds)
   const contextSummary = useSettings((state) => state.contextSummary)
+  const longInputMode = useSettings((state) => state.longInputMode)
   return (
     <>
+      <SettingCell
+        label={t('settingsLongInputMode')}
+        description={t('settingsLongInputModeDescription')}
+        status={null}
+        className={styles.stackCell}
+        action={
+          <Select
+            ariaLabel={t('settingsLongInputMode')}
+            value={longInputMode}
+            options={[
+              { value: 'off', label: t('settingsLongInputModeOff') },
+              { value: 'file', label: t('settingsLongInputModeFile') },
+              { value: 'split', label: t('settingsLongInputModeSplit') },
+            ]}
+            onChange={(value) => setLongInputMode(value as LongInputMode)}
+          />
+        }
+      />
       <SettingCell
         label={t('settingsContextRounds')}
         description={t('settingsContextRoundsDescription')}
