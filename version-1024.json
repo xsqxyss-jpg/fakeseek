@@ -1,0 +1,7 @@
+{
+  "version": "1.0.24",
+  "versionCode": 25,
+  "url": "https://gcore.jsdelivr.net/gh/xsqxyss-jpg/fakeseek@main/fakeseek-v1.0.24-final.apk",
+  "notes": "修复部分机型白屏（WebView 兼容）\n修复超长文本报错，单条 32K 限制自动处理，新增三种可选拦截模式\n新增应用内更新：启动自动检查、弹窗内实时进度条、断线自动重试，全程不跳系统下载器",
+  "publishedAt": "2026-11-21"
+}
