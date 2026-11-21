@@ -63,7 +63,7 @@ import {
 } from './settingsDialogState.js'
 import styles from './Settings.module.css'
 
-const APP_VERSION = '1.0.26 (27)'
+const APP_VERSION = '1.0.27 (28)'
 
 /**
  * 设置页（官方 App 风格）：移动端全屏、桌面居中大卡片。

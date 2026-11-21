@@ -76,6 +76,8 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   const [attachOpen, setAttachOpen] = useState(false)
   /** 移动端语音面板：点麦克风进入「按住说话」态（此时尚未录音），再长按才收音 */
   const [voiceMode, setVoiceMode] = useState(false)
+  /** 本次进入语音面板后是否真的录过音：没录过就保持面板，录过且回到 idle 则自动退出 */
+  const voiceInteracted = useRef(false)
 
   useLayoutEffect(() => {
     const toggles = togglesRef.current
@@ -139,6 +141,20 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
       textarea?.setSelectionRange(start + transcript.length, start + transcript.length)
     })
   })
+
+  // 语音面板收尾：转写结束（无论成功、空结果还是失败）都退回键盘态，
+  // 否则「按住说话」面板残留占住输入框，而左下角按钮已变回发送，状态割裂。
+  const voiceStatus = voice.status
+  useEffect(() => {
+    if (!isMobile || !voiceMode || voiceStatus !== 'idle') {
+      return
+    }
+    // 从录音/转写回到 idle：说明本次语音交互已经结束
+    if (voiceInteracted.current) {
+      voiceInteracted.current = false
+      setVoiceMode(false)
+    }
+  }, [isMobile, voiceMode, voiceStatus])
 
   // 欢迎页导入后会话 ID 不变，不能依赖卸载取消语音；订阅开始事件也覆盖快速完成的导入。
   const cancelVoice = voice.cancel
@@ -227,6 +243,7 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
                 !useChatStore.getState().importingHistory &&
                 ensureApiKey()
               ) {
+                voiceInteracted.current = true
                 void voice.start()
               }
             }}
