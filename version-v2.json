@@ -1,0 +1,7 @@
+{
+  "version": "1.0.23",
+  "versionCode": 24,
+  "url": "https://gcore.jsdelivr.net/gh/xsqxyss-jpg/fakeseek@main/fakeseek-v1.0.23-r2.apk",
+  "notes": "修复部分机型白屏\n修复超长文本报错，新增三种可选拦截模式\n新增应用内更新",
+  "publishedAt": "2026-11-21"
+}
