@@ -8,10 +8,10 @@ import { showToast } from '../components/base/toastState.js'
  */
 
 /** 更新清单直链（GitHub 仓库 xsqxyss-jpg/fakeseek 的 main 分支，经 jsDelivr CDN 国内分流） */
-const VERSION_JSON_URL = 'https://gcore.jsdelivr.net/gh/xsqxyss-jpg/fakeseek@main/version-1024.json'
+const VERSION_JSON_URL = 'https://gcore.jsdelivr.net/gh/xsqxyss-jpg/fakeseek@main/version-1025.json'
 
 /** 本 App 编译期版本号（与 SettingsDialog 的 APP_VERSION 保持一致） */
-const APP_VERSION_CODE = 25
+const APP_VERSION_CODE = 26
 
 /** 更新信息（检查成功后填充） */
 export type UpdateInfo = {

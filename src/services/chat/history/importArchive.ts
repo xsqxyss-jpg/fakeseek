@@ -123,7 +123,7 @@ export const listArchive = async (
   let currentSessionId: string | undefined
   const list: ArchiveSessionInfo[] = []
   try {
-    for await (const entry of readArchive(file)) {
+    for await (const entry of readArchive(file, (p) => onProgress && onProgress(Math.min(0.03, p)))) {
       const { path } = entry
       const sessionId = parseSessionPath(path)
       // 大会话的解压阶段也要上报进度，否则进度条会在条目起点钉死几十秒
@@ -172,7 +172,9 @@ export const listArchive = async (
         fail('backupIncomplete')
       }
       if (onProgress) {
-        onProgress(Math.min(1, entry.endOffset / entry.totalSize))
+        // 进度统一由条目数推进（(index+1)/total）：图片占绝大多数字节，按字节算会
+        // 长时间停在个位数百分比，用户看到的就是「卡在 2%」。条目粒度才是真实的。
+        onProgress(Math.min(1, (entry.index + 1) / entry.total))
       }
     }
   } catch (error) {
@@ -260,7 +262,7 @@ export const importArchive = async (
 
   const throttled = throttleProgress(onProgress)
   try {
-    for await (const entry of readArchive(file)) {
+    for await (const entry of readArchive(file, (p) => throttled && throttled(Math.min(0.03, p)))) {
       const { path } = entry
       const sessionId = parseSessionPath(path)
       const entryProgress = throttled
@@ -314,9 +316,10 @@ export const importArchive = async (
       } else {
         fail('backupIncomplete')
       }
-      // 每处理完一个条目上报一次字节进度；条目消费完后 endOffset 才有效
+      // 进度按条目数推进：图片占绝大多数字节且走 skipFast 不报内部进度，
+      // 按字节算会长期停在个位数百分比（用户反馈的「卡在 2%」）。条目粒度才真实。
       if (throttled) {
-        throttled(Math.min(1, entry.endOffset / entry.totalSize))
+        throttled(Math.min(1, (entry.index + 1) / entry.total))
       }
     }
     await flushFiles()

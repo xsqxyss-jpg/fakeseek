@@ -85,7 +85,10 @@ type Entry = {
   offset: number
 }
 
-const readDirectory = async (file: File): Promise<{ entries: Entry[]; offset: number }> => {
+const readDirectory = async (
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<{ entries: Entry[]; offset: number }> => {
   if (file.size < 22) {
     invalid()
   }
@@ -119,23 +122,27 @@ const readDirectory = async (file: File): Promise<{ entries: Entry[]; offset: nu
   }
   const entries: Entry[] = []
   const paths = new Set<string>()
+  // 一次读入整个中央目录：原来每条目单独 readBytes(46)，上千条目就是上千次异步切片，
+  // 在低端 WebView 上能钉住主线程几十秒且没有任何进度反馈（进度条卡在 2%）。
+  const dirBytes = await readBytes(file, offset, size)
+  const dirView = viewOf(dirBytes)
   let cursor = 0
   for (let index = 0; index < count; index++) {
     if (cursor + 46 > size) {
       invalid()
     }
-    const view = viewOf(await readBytes(file, offset + cursor, 46))
-    if (view.getUint32(0, true) !== 0x02014b50) {
+    if (dirView.getUint32(cursor, true) !== 0x02014b50) {
       invalid()
     }
-    const flags = view.getUint16(8, true)
-    const method = view.getUint16(10, true)
-    const compressedSize = view.getUint32(20, true)
-    const entrySize = view.getUint32(24, true)
-    const nameLength = view.getUint16(28, true)
-    const extraLength = view.getUint16(30, true)
-    const next = cursor + 46 + nameLength + extraLength + view.getUint16(32, true)
-    const entryOffset = view.getUint32(42, true)
+    const flags = dirView.getUint16(cursor + 8, true)
+    const method = dirView.getUint16(cursor + 10, true)
+    const compressedSize = dirView.getUint32(cursor + 20, true)
+    const entrySize = dirView.getUint32(cursor + 24, true)
+    const nameLength = dirView.getUint16(cursor + 28, true)
+    const extraLength = dirView.getUint16(cursor + 30, true)
+    const commentLength = dirView.getUint16(cursor + 32, true)
+    const next = cursor + 46 + nameLength + extraLength + commentLength
+    const entryOffset = dirView.getUint32(cursor + 42, true)
     // 只允许 deflate 选项、data descriptor 与 UTF-8 标志。
     if (
       flags & ~0x80e ||
@@ -144,13 +151,16 @@ const readDirectory = async (file: File): Promise<{ entries: Entry[]; offset: nu
       entrySize === 0xffffffff ||
       (method === 0 && compressedSize !== entrySize) ||
       entryOffset >= offset ||
-      view.getUint16(34, true) !== 0 ||
-      ((view.getUint32(38, true) >>> 16) & 0xf000) === 0xa000 ||
+      dirView.getUint16(cursor + 34, true) !== 0 ||
+      ((dirView.getUint32(cursor + 38, true) >>> 16) & 0xf000) === 0xa000 ||
       next > size
     ) {
       invalid()
     }
-    const name = await readBytes(file, offset + cursor + 46, nameLength)
+    if (cursor + 46 + nameLength + extraLength > dirBytes.length) {
+      invalid()
+    }
+    const name = dirBytes.subarray(cursor + 46, cursor + 46 + nameLength)
     const path = decodePath(name, flags)
     // 目录和同名文件也不能互相覆盖。
     const identity = path.endsWith('/') ? path.slice(0, -1) : path
@@ -158,18 +168,23 @@ const readDirectory = async (file: File): Promise<{ entries: Entry[]; offset: nu
       invalid()
     }
     paths.add(identity)
-    checkExtra(await readBytes(file, offset + cursor + 46 + nameLength, extraLength))
+    checkExtra(dirBytes.subarray(cursor + 46 + nameLength, cursor + 46 + nameLength + extraLength))
     entries.push({
       path,
       name,
       flags,
       method,
-      crc: view.getUint32(16, true),
+      crc: dirView.getUint32(cursor + 16, true),
       compressedSize,
       size: entrySize,
       offset: entryOffset,
     })
     cursor = next
+    // 每 256 条上报一次目录解析进度（占整体 0-3%），并让出主线程保证渲染
+    if (onProgress && (index & 0xff) === 0xff) {
+      onProgress(((index + 1) / count) * 0.03)
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    }
   }
   if (cursor !== size) {
     invalid()
@@ -240,6 +255,12 @@ export type ArchiveEntry = {
   dataStart: number
   /** 该条目已读入的压缩字节数，由 stream 生成器实时更新，供 readEntry 上报进度 */
   consumed: number
+  /** 该条目在归档中的序号（0 起，仅计非目录条目），用于按条目数算进度 */
+  index: number
+  /** 归档中非目录条目总数；与 index 配合得到真实推进比例 */
+  total: number
+  /** 该条目压缩后的字节数，用于算条目内部的完成比例 */
+  compressedSizeHint: number
   /**
    * 只推进读取偏移，不解压也不校验 CRC。
    *
@@ -256,14 +277,19 @@ export type ArchiveEntry = {
  * 按条目在文件中的物理顺序逐条、逐块解压，跳过目录条目。
  * 调用方必须消费完当前条目的数据，再请求下一个条目。
  */
-export async function* readArchive(file: File): AsyncGenerator<ArchiveEntry> {
-  const directory = await readDirectory(file)
-  for (const [index, entry] of directory.entries.entries()) {
-    const boundary = directory.entries[index + 1]?.offset ?? directory.offset
+export async function* readArchive(
+  file: File,
+  onDirectoryProgress?: (progress: number) => void
+): AsyncGenerator<ArchiveEntry> {
+  const directory = await readDirectory(file, onDirectoryProgress)
+  // 先算非目录条目总数：进度按「已处理条目/总条目」算，而不是按文件字节。
+  // 归档里图片占绝大多数字节，压缩率又高，按字节算时进度会长时间停在个位数百分比，
+  // 看起来像卡死（用户反馈「卡在 2%」）。
+  const files = directory.entries.filter((entry) => !entry.path.endsWith('/'))
+  const totalFiles = Math.max(1, files.length)
+  for (const [index, entry] of files.entries()) {
+    const boundary = files[index + 1]?.offset ?? directory.offset
     const start = await readEntryOffset(file, entry, boundary)
-    if (entry.path.endsWith('/')) {
-      continue
-    }
     let completed = false
     // 与下面 yield 出去的对象共享同一个引用：stream 生成器实时写入 consumed，
     // readEntry 读取它把「已读压缩字节」换算成整体百分比，进度条才会平滑前进。
@@ -275,6 +301,9 @@ export async function* readArchive(file: File): AsyncGenerator<ArchiveEntry> {
       totalSize: file.size,
       dataStart: start,
       consumed: 0,
+      index,
+      total: totalFiles,
+      compressedSizeHint: Math.max(1, entry.compressedSize),
       skipFast: () => {
         handle.consumed = entry.compressedSize
         completed = true
@@ -351,10 +380,14 @@ export const readEntry = async (
   let buffer: Uint8Array[] = []
   let buffered = 0
   const AGGREGATE_BYTES = 1024 * 1024
+  // 进度按「已完成条目数 + 当前条目完成比例」算，不用文件字节：
+  // 归档里图片占绝大多数字节，按字节算会让进度长时间停在个位数百分比，看着像卡死。
   const report = () => {
-    if (onProgress && entry.totalSize > 0) {
-      onProgress(Math.min(1, (entry.dataStart + entry.consumed) / entry.totalSize))
+    if (!onProgress) {
+      return
     }
+    const fraction = Math.min(1, entry.consumed / entry.compressedSizeHint)
+    onProgress(Math.min(1, (entry.index + fraction) / entry.total))
   }
   const flush = () => {
     if (buffered > 0) {
