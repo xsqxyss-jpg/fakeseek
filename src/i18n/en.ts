@@ -351,8 +351,8 @@ export const en = {
   updateDownloading: 'Downloading…',
   updateNoNotes: 'This update includes performance improvements and fixes.',
   updatePublishedAt: 'Published {date}',
-  updateRepoLink: 'Repo: {repo}',
-  updateAskStar: 'a star would be appreciated',
+  updateRepoLink: 'GitHub project page (tap to open)',
+  updateAskStar: 'A star would mean a lot. Thanks!',
   updateCheckFailed: 'Update check failed. Please try again later.',
   updateDownloadFailed: 'Download failed. Check your network and try again.',
 } satisfies Record<keyof typeof zh, string>

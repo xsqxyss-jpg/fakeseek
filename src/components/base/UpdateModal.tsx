@@ -75,22 +75,33 @@ export const UpdateModal = () => {
             </p>
           </div>
         ) : null}
+        {info.repoUrl ? (
+          <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(128,128,128,0.25)' }}>
+            <a
+              href={info.repoUrl}
+              onClick={(event) => {
+                // WebView 里 <a target=_blank> 不可靠，统一走 window.open 交给系统浏览器
+                event.preventDefault()
+                window.open(info.repoUrl!, '_blank')
+              }}
+              style={{
+                display: 'block',
+                color: 'var(--t3-accent, #4a8dff)',
+                textDecoration: 'none',
+                fontSize: 13,
+                wordBreak: 'break-all',
+              }}
+            >
+              {t('updateRepoLink')}
+            </a>
+            <p style={{ margin: '6px 0 0', fontSize: 12, opacity: 0.65 }}>
+              {t('updateAskStar')}
+            </p>
+          </div>
+        ) : null}
         {info.publishedAt ? (
           <p style={{ margin: '12px 0 0', fontSize: 12, opacity: 0.6 }}>
             {t('updatePublishedAt', { date: info.publishedAt })}
-          </p>
-        ) : null}
-        {info.repoUrl ? (
-          <p style={{ margin: '10px 0 0', fontSize: 12 }}>
-            <a
-              href={info.repoUrl}
-              target="_blank"
-              rel="noreferrer"
-              style={{ color: 'var(--t3-accent, #4a8dff)', textDecoration: 'none' }}
-            >
-              {t('updateRepoLink', { repo: info.repoUrl.replace('https://', '') })}
-            </a>
-            <span style={{ opacity: 0.65 }}> · {t('updateAskStar')}</span>
           </p>
         ) : null}
       </div>

@@ -339,8 +339,8 @@ export const zh = {
   updateDownloading: '正在下载…',
   updateNoNotes: '本次更新包含性能改进与问题修复。',
   updatePublishedAt: '发布于 {date}',
-  updateRepoLink: '项目地址：{repo}',
-  updateAskStar: '去点个 Star 支持一下～',
+  updateRepoLink: 'GitHub 项目主页（点击打开）',
+  updateAskStar: '顺手点个 Star？谢啦',
   updateCheckFailed: '检查更新失败，请稍后重试',
   updateDownloadFailed: '下载失败，请检查网络后重试',
 } as const
