@@ -143,8 +143,8 @@ export const MessageList = ({
   const uploadRetryId = getUploadRetryId(messages, streaming)
   return (
     <ScrollToBottomContext.Provider value={scrollToBottom}>
-      <div ref={isMobile ? undefined : scrollRef} className={styles.container}>
-        <div ref={isMobile ? scrollRef : undefined} className={styles.scroll}>
+      <div ref={isMobile ? undefined : scrollRef} className={styles.container} data-chat-scroll>
+        <div ref={isMobile ? scrollRef : undefined} className={styles.scroll} data-chat-scroll>
           <div ref={contentRef} className={styles.column}>
             {messages.map((message, index) =>
               message.role === 'user' ? (
@@ -172,6 +172,12 @@ export const MessageList = ({
                 />
               )
             )}
+            {/* 会话内容搜索的滚动锚点：搜索结果点击后按 data-message-id 定位 */}
+            <div className={styles.searchAnchorHost}>
+              {messages.map((message) => (
+                <span key={`anchor-${message.id}`} data-message-id={message.id} />
+              ))}
+            </div>
           </div>
         </div>
         {footer}

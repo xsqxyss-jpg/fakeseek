@@ -43,7 +43,10 @@ export const useFileView = (source: File | string, name: string) => {
 
   const url = state?.source === source && state.type === type ? state.url : undefined
   const image = isImage(type)
-  const openInTab = type === 'application/pdf' || (image && type !== 'image/svg+xml')
+  // PDF 仍走新开页（内置查看层不含滚动阅读）；图片一律 download 属性兜底，
+  // 由调用方决定用应用内查看层放大（MessageFile / DraftAttachments），
+  // 不再给图片发 target=_blank —— WebView 里开新窗口回不来，按返回直接退出应用。
+  const openInTab = type === 'application/pdf'
   const action = openInTab ? { target: '_blank', rel: 'noreferrer' } : { download: name }
   return { url, image, link: url ? { href: url, ...action } : undefined }
 }

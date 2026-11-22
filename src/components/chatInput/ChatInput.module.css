@@ -990,3 +990,43 @@
 :global([data-app-wallpaper]:not([data-wp-glass-light])) .attachCardLabel {
   color: rgba(248, 250, 252, 0.92);
 }
+
+/* 草稿附件预览按钮（原 a 标签）：保持缩略图外观 */
+.attachmentPreview {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: zoom-in;
+}
+
+/* 草稿附件应用内放大层：全屏蒙层 + 大图居中，点任意处收起 */
+.attachmentZoom {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.88);
+  cursor: zoom-out;
+  animation: attachmentZoomFadeIn 0.16s ease;
+}
+
+.attachmentZoom img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+@keyframes attachmentZoomFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

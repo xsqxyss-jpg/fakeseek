@@ -28,6 +28,7 @@ import {
   useMobileSider,
 } from './mobileSiderState.js'
 import { SessionItem } from './SessionItem.js'
+import { ContentSearchResults } from './ContentSearch.js'
 import styles from './Sider.module.css'
 
 /** Key 掩码显示：sk-abcd…wxyz；没有 Key 时提示去配置 */
@@ -255,6 +256,18 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
           ))}
           {query.trim() && groups.length === 0 ? (
             <div className={styles.searchEmpty}>{t('siderSearchEmpty')}</div>
+          ) : null}
+          {/* 内容搜索结果：标题搜索已把匹配会话列在上面，这里只列正文命中（含摘要与跳转） */}
+          {query.trim() ? (
+            <ContentSearchResults
+              query={query}
+              titleHitIds={contentHits === null ? null : new Set(
+                sessions
+                  .filter((session) => session.title.toLowerCase().includes(query.trim().toLowerCase()))
+                  .map((session) => session.id)
+              )}
+              onOpenSession={closeMobileSider}
+            />
           ) : null}
         </div>
       </div>

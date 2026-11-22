@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { memo } from 'react'
+import { memo, useState } from 'react'
 import { useTranslate } from '../../i18n/index.js'
 import { useUploads, type UploadTask } from '../../services/attachments.js'
 import type { DraftAttachment } from '../../services/chat/drafts.js'
@@ -53,6 +53,8 @@ const AttachmentItem = ({
   const task = useUploads((state) => state.tasks[item.id] ?? UPLOADING)
   const status = task.status
   const error = task.status === 'error' ? t(task.error.key, task.error.params) : undefined
+  /** 草稿附件的应用内放大层 */
+  const [zoomed, setZoomed] = useState(false)
   // 过大、格式不支持等重试无效的失败只提示原因，需删除后再发送
   const retry = task.status === 'error' && task.retryable ? onRetry : undefined
   const failed = status === 'error'
@@ -65,7 +67,28 @@ const AttachmentItem = ({
       className={clsx(styles.attachment, failed && styles.attachmentFailed)}
       title={error ?? item.file.name}
     >
-      {link && status === 'done' ? <a {...link}>{preview}</a> : preview}
+      {link && status === 'done' ? (
+        <button
+          type="button"
+          className={styles.attachmentPreview}
+          aria-label={item.file.name}
+          onClick={() => setZoomed(true)}
+        >
+          {preview}
+        </button>
+      ) : (
+        preview
+      )}
+      {zoomed && url ? (
+        <div
+          className={styles.attachmentZoom}
+          role="dialog"
+          aria-label={item.file.name}
+          onClick={() => setZoomed(false)}
+        >
+          <img src={url} alt={item.file.name} onClick={(event) => event.stopPropagation()} />
+        </div>
+      ) : null}
       {status === 'uploading' ? <div className={styles.uploading} /> : null}
       {failed && retry ? (
         <Tooltip content={retryLabel}>

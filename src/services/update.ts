@@ -16,7 +16,7 @@ import { showToast } from '../components/base/toastState.js'
 const VERSION_JSON_URL = 'https://xsqxyss-jpg.github.io/fakeseek/version.json'
 
 /** 本 App 编译期版本号（与 SettingsDialog 的 APP_VERSION 保持一致） */
-const APP_VERSION_CODE = 29
+const APP_VERSION_CODE = 30
 
 /** 更新信息（检查成功后填充） */
 export type UpdateInfo = {
