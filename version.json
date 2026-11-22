@@ -1,7 +1,8 @@
 {
-  "version": "1.0.29",
-  "versionCode": 30,
-  "url": "https://gcore.jsdelivr.net/gh/xsqxyss-jpg/fakeseek@main/fakeseek-v1.0.29-final.apk",
-  "notes": "新增会话全文搜索：侧栏搜索框输入后同时搜标题与消息正文，结果显示摘要片段（关键词高亮），点击跳转到命中消息\n修复草稿附件图片放大的同类退出问题：与消息图片一样改为应用内查看层\n上一版已修：消息图片放大退出、导入进度卡 2%、窗口预算残留",
-  "publishedAt": "2026-11-22"
+  "version": "1.0.30",
+  "versionCode": 31,
+  "url": "https://gcore.jsdelivr.net/gh/xsqxyss-jpg/fakeseek@main/fakeseek-v1.0.30-final.apk",
+  "notes": "新增会话全文搜索：侧栏搜索框输入后同时搜标题与消息正文，结果带摘要高亮，点击跳转到命中消息\n修复图片放大退出软件的问题（消息图片与待发送草稿图片都已改为应用内查看层）\n修复会话导入卡在 2% 不动（进度按条目数推进）\n项目地址：https://github.com/xsqxyss-jpg/fakeseek · 觉得好用的话去点个 Star 支持一下～",
+  "publishedAt": "2026-11-22",
+  "repoUrl": "https://github.com/xsqxyss-jpg/fakeseek"
 }
