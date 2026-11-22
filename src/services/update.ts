@@ -16,7 +16,7 @@ import { showToast } from '../components/base/toastState.js'
 const VERSION_JSON_URL = 'https://xsqxyss-jpg.github.io/fakeseek/version.json'
 
 /** 本 App 编译期版本号（与 SettingsDialog 的 APP_VERSION 保持一致） */
-const APP_VERSION_CODE = 30
+const APP_VERSION_CODE = 31
 
 /** 更新信息（检查成功后填充） */
 export type UpdateInfo = {
@@ -25,6 +25,8 @@ export type UpdateInfo = {
   url: string
   notes: string
   publishedAt?: string
+  /** 项目主页（GitHub 仓库地址），弹窗里展示并跳转求 star */
+  repoUrl?: string
 }
 
 /** 弹窗可见状态：检查结果写入 store，UpdateModal 订阅它实时弹出（修「挂载时读一次」的竞态） */
@@ -61,6 +63,7 @@ const parseVersionBody = (body: string): UpdateInfo | null => {
       url,
       notes: typeof raw.notes === 'string' ? raw.notes : '',
       publishedAt: typeof raw.publishedAt === 'string' ? raw.publishedAt : undefined,
+      repoUrl: typeof raw.repoUrl === 'string' && raw.repoUrl.startsWith('https://') ? raw.repoUrl : undefined,
     }
   } catch {
     return null

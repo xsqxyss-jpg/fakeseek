@@ -80,6 +80,19 @@ export const UpdateModal = () => {
             {t('updatePublishedAt', { date: info.publishedAt })}
           </p>
         ) : null}
+        {info.repoUrl ? (
+          <p style={{ margin: '10px 0 0', fontSize: 12 }}>
+            <a
+              href={info.repoUrl}
+              target="_blank"
+              rel="noreferrer"
+              style={{ color: 'var(--t3-accent, #4a8dff)', textDecoration: 'none' }}
+            >
+              {t('updateRepoLink', { repo: info.repoUrl.replace('https://', '') })}
+            </a>
+            <span style={{ opacity: 0.65 }}> · {t('updateAskStar')}</span>
+          </p>
+        ) : null}
       </div>
     </Modal>
   )
