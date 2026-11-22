@@ -1,7 +1,7 @@
 {
-  "version": "1.0.28",
-  "versionCode": 29,
-  "url": "https://gcore.jsdelivr.net/gh/xsqxyss-jpg/fakeseek@main/fakeseek-v1.0.28-final.apk",
-  "notes": "修复点图片放大后按返回直接退出软件的问题：放大改为应用内查看层，点任意处或按返回收起，不再丢失输入内容\n修复历史上下文预算被旧报错残留锁死的问题（32K 时代残留不再误伤 1M 窗口模型）\n语音转写完成后自动收起按住说话面板",
+  "version": "1.0.29",
+  "versionCode": 30,
+  "url": "https://gcore.jsdelivr.net/gh/xsqxyss-jpg/fakeseek@main/fakeseek-v1.0.29-final.apk",
+  "notes": "新增会话全文搜索：侧栏搜索框输入后同时搜标题与消息正文，结果显示摘要片段（关键词高亮），点击跳转到命中消息\n修复草稿附件图片放大的同类退出问题：与消息图片一样改为应用内查看层\n上一版已修：消息图片放大退出、导入进度卡 2%、窗口预算残留",
   "publishedAt": "2026-11-22"
 }
